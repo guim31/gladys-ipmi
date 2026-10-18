@@ -10,6 +10,8 @@ the notes of the version's GitHub Release.
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-10-18
+
 ### Added
 
 - One device per server, read over IPMI with `ipmitool` (IPMI 2.0 `lanplus`,
@@ -30,3 +32,6 @@ the notes of the version's GitHub Release.
 - "Test the connection" action, and the reason of a failure in the status of
   the integration (does not answer, password refused, missing privilege).
 - English, French, German and Spanish, documentation included.
+
+[Unreleased]: https://github.com/guim31/gladys-ipmi/compare/v1.0.0...HEAD
+[1.0.0]: https://github.com/guim31/gladys-ipmi/releases/tag/v1.0.0
