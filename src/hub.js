@@ -17,13 +17,7 @@
 
 import { DEVICE_TRANSPORTS, createLogger } from '@gladysassistant/integration-sdk';
 import { Watcher } from './alerts.js';
-import {
-  buildDevice,
-  deviceIds,
-  featureKeys,
-  featureValues,
-  parseDeviceId,
-} from './devices.js';
+import { buildDevice, deviceIds, featureKeys, featureValues, parseDeviceId } from './devices.js';
 import { ERROR_KINDS, IpmiClient } from './ipmi/client.js';
 import { parseServer } from './ipmi/model.js';
 import { addressOf } from './config.js';
