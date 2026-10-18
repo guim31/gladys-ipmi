@@ -56,7 +56,7 @@ test('a read: chassis, hourly SDR dump and FRU, sensors from the cache, DCMI tri
   const raw = await client.read();
   assert.deepEqual(commands(bmc), [
     'chassis status',
-    'sdr dump /tmp/gladys-ipmi-sdr-1.cache',
+    `sdr dump ${client.cacheFile}`,
     'fru print 0',
     'mc info',
     'sdr elist',
@@ -65,7 +65,8 @@ test('a read: chassis, hourly SDR dump and FRU, sensors from the cache, DCMI tri
   const elist = bmc.calls.find(
     (call) => commandOf(call.args)[0] === 'sdr' && commandOf(call.args)[1] === 'elist',
   );
-  assert.equal(option(elist.args, '-S'), '/tmp/gladys-ipmi-sdr-1.cache');
+  assert.equal(option(elist.args, '-S'), client.cacheFile);
+  assert.match(client.cacheFile, /^\/tmp\/gladys-ipmi-sdr-1-/);
   assert.equal(raw.chassis.on, true);
   assert.equal(raw.dcmiWatts, 172);
   assert.equal(raw.fru.product, 'PowerEdge R720');
@@ -79,7 +80,7 @@ test('a read: chassis, hourly SDR dump and FRU, sensors from the cache, DCMI tri
   bmc.calls.length = 0;
   clock.advance(3600_000);
   await client.read();
-  assert.ok(commands(bmc).includes('sdr dump /tmp/gladys-ipmi-sdr-1.cache'), 'dumped again');
+  assert.ok(commands(bmc).includes(`sdr dump ${client.cacheFile}`), 'dumped again');
 });
 
 test('a BMC without DCMI is not asked again before the next hourly refresh', async () => {
@@ -150,8 +151,8 @@ test('the SEL: read when it changed only, the newest entries', async () => {
   assert.equal(await client.readSel(), null, 'unchanged: one sel info only');
   assert.deepEqual(commands(bmc), ['sel info']);
   bmc.addSelEntry(
-    '   5 | 10/18/2026 | 09:00:00 | Fan Fan1 RPM | Lower Critical going low  | Asserted',
-    '10/18/2026 09:00:00',
+    '   5 | 10/18/26 | 09:00:00 UTC | Fan Fan1 RPM | Lower Critical going low  | Asserted',
+    '10/18/26 09:00:00 UTC',
   );
   const next = await client.readSel();
   assert.equal(next[0].id, '5');
@@ -184,4 +185,92 @@ test('IPMI 1.5, another port, no user name', async () => {
   assert.equal(option(args, '-I'), 'lan');
   assert.equal(option(args, '-p'), '6230');
   assert.ok(!args.includes('-U'));
+});
+
+test('a BMC without "Get Channel Cipher Suites" gets suite 3 from the next command on', async () => {
+  const bmc = new FakeBmc();
+  bmc.noCipherSuites = true;
+  const { client } = clientFor(bmc);
+  await client.read();
+  assert.ok(!bmc.calls[0].args.includes('-C'), 'the first command lets ipmitool choose');
+  assert.ok(bmc.calls.slice(1).every((call) => option(call.args, '-C') === '3'));
+  // IPMI 1.5 has no cipher suites.
+  const old = new FakeBmc();
+  old.noCipherSuites = true;
+  await clientFor(old, { iface: 'lan' }).client.read();
+  assert.ok(old.calls.every((call) => !call.args.includes('-C')));
+});
+
+test('a BMC that keeps failing is diagnosed once, not at every read', async () => {
+  const down = new FakeBmc();
+  down.reachable = false;
+  const { client, clock } = clientFor(down);
+  await assert.rejects(client.read(), { kind: ERROR_KINDS.UNREACHABLE });
+  await assert.rejects(client.read(), { kind: ERROR_KINDS.UNREACHABLE });
+  assert.equal(down.calls.filter((call) => call.args.includes('-v')).length, 1);
+  clock.advance(10 * 60_000);
+  await assert.rejects(client.read(), { kind: ERROR_KINDS.UNREACHABLE });
+  assert.equal(down.calls.filter((call) => call.args.includes('-v')).length, 2);
+});
+
+test('a read-only account asking for Operator gets a privilege error, not "unreachable"', async () => {
+  const bmc = new FakeBmc();
+  // Some BMCs refuse the session at the Operator level with a bare failure.
+  const run = async (args, options) =>
+    option(args, '-L') === 'OPERATOR'
+      ? {
+          code: 1,
+          stdout: '',
+          stderr: 'Error: Unable to establish IPMI v2 / RMCP+ session\n',
+          timedOut: false,
+          missing: false,
+        }
+      : bmc.handle(args, options);
+  const { client } = clientFor(bmc, { run });
+  await assert.rejects(client.power('soft'), { kind: ERROR_KINDS.PRIVILEGE });
+});
+
+test('a closed client sends nothing more; each client its own cache file', async () => {
+  const bmc = new FakeBmc();
+  const first = clientFor(bmc).client;
+  const second = clientFor(bmc).client;
+  assert.notEqual(first.cacheFile, second.cacheFile);
+  await first.close();
+  bmc.calls.length = 0;
+  await assert.rejects(first.read(), { kind: ERROR_KINDS.FAILED });
+  assert.equal(bmc.calls.length, 0);
+});
+
+test('sdr elist that exits 1 after printing the sensors is used', async () => {
+  const bmc = new FakeBmc();
+  const run = async (args, options) => {
+    const result = bmc.handle(args, options);
+    return commandOf(args).join(' ') === 'sdr elist'
+      ? { ...result, code: 1, stderr: 'Unable to read sensor 0x42\n' }
+      : result;
+  };
+  const raw = await clientFor(bmc, { run }).client.read();
+  assert.equal(raw.sensors.length, 9);
+});
+
+test('suite 3 refused later: ipmitool chooses again', async () => {
+  const bmc = new FakeBmc();
+  bmc.noCipherSuites = true;
+  let refuse = false;
+  const run = async (args, options) =>
+    refuse && option(args, '-C') === '3'
+      ? {
+          code: 1,
+          stdout: '',
+          stderr: 'Error: no matching cipher suite\n',
+          timedOut: false,
+          missing: false,
+        }
+      : bmc.handle(args, options);
+  const { client } = clientFor(bmc, { run });
+  await client.read();
+  assert.equal(client.cipher, '3');
+  refuse = true;
+  await assert.rejects(client.powerState());
+  assert.equal(client.cipher, null);
 });

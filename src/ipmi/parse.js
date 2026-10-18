@@ -67,9 +67,10 @@ const SEVERITY_OF_STATUS = {
 
 // The reading of a discrete sensor (power supply, drive, redundancy) is a
 // list of asserted states. A few of them mean a failure.
-const DISCRETE_CRITICAL = /failure detected|non-recoverable|transition to critical/i;
+const DISCRETE_CRITICAL =
+  /failure detected|non-recoverable|transition to critical|\bierr\b|thermal trip|frb\d?\W.*fail|uncorrectable|critical overtemp|in failed array|rebuild.*aborted|battery failed|config(uration)? error|insufficient resources/i;
 const DISCRETE_WARNING =
-  /predictive failure|ac lost|out-of-range|redundancy lost|redundancy degraded|fault|transition to non-critical/i;
+  /predictive failure|ac lost|out-of-range|redundancy lost|redundancy degraded|non-redundant|fault|transition to non-critical|in critical array|battery low|correctable (ecc|machine check)|throttl/i;
 
 const UNITS = [
   ['degrees C', 'celsius'],
@@ -164,8 +165,11 @@ export function parseSelInfo(text) {
   };
 }
 
-// `10/18/2026 | 07:22:15`: the date format of ipmitool (MM/DD/YYYY).
-const SEL_DATE = /^(\d{2})\/(\d{2})\/(\d{4})$/;
+// `10/18/26 | 07:55:43 UTC`: the date of ipmitool 1.8.19 (MM/DD/YY, the time
+// in the zone of the container, given by TZ); older versions print MM/DD/YYYY
+// and a bare time.
+const SEL_DATE = /^(\d{2})\/(\d{2})\/(\d{2}|\d{4})$/;
+const SEL_TIME = /^(\d{2}:\d{2}:\d{2})(?:\s+([A-Z][A-Za-z0-9+-]{0,5}))?$/;
 
 /**
  * `ipmitool sel elist`: the entries, newest first, with a stable key. The
@@ -181,8 +185,12 @@ export function parseSelList(text) {
     }
     const [id, date, time, ...rest] = parts;
     const day = date.match(SEL_DATE);
+    const clock = time.match(SEL_TIME);
+    const year = day && day[3].length === 2 ? `20${day[3]}` : day?.[3];
     const created =
-      day && /^\d{2}:\d{2}:\d{2}$/.test(time) ? `${day[3]}-${day[1]}-${day[2]} ${time}` : null;
+      day && clock
+        ? `${year}-${day[1]}-${day[2]} ${clock[1]}${clock[2] ? ` ${clock[2]}` : ''}`
+        : null;
     const direction = rest.find((part) => /^(Asserted|Deasserted)$/.test(part));
     entries.push({
       key: `${id}|${date}|${time}`,
@@ -239,13 +247,17 @@ export function parseMcInfo(text) {
 export function classifyError(output) {
   const text = String(output ?? '');
   if (
-    /RAKP 2 HMAC is invalid|unauthorized name|Invalid user name|Activate Session command failed|Invalid password|Password is too long|RAKP \d message indicates an error : (?!.*role)/i.test(
+    /RAKP 2 HMAC is invalid|unauthorized name|Invalid user name|Activate Session command failed|Invalid password|Password is too long|RAKP \d message indicates an error : (?!.*(role|privilege))/i.test(
       text,
     )
   ) {
     return ERROR_KINDS.AUTH;
   }
-  if (/Insufficient privilege level|invalid role|privilege level exceeds|\(d4\)/i.test(text)) {
+  if (
+    /Insufficient privilege level|invalid role|unauthorized role|privilege level exceeds|\(d4\)/i.test(
+      text,
+    )
+  ) {
     return ERROR_KINDS.PRIVILEGE;
   }
   if (

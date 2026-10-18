@@ -1,0 +1,4 @@
+   b | 10/18/26 | 07:55:39 UTC | Temperature CPU1 Temp | Upper Non-critical going high | Deasserted | Reading 45 < Threshold 85 degrees C
+   c | 10/18/26 | 07:55:39 UTC | Temperature CPU1 Temp | Upper Critical going high | Deasserted | Reading 45 < Threshold 90 degrees C
+   d | 10/18/26 | 07:55:39 UTC | Fan Fan1 RPM | Lower Non-critical going low  | Deasserted | Reading 4200 > Threshold 1200 RPM
+   e | 10/18/26 | 07:55:43 UTC | Temperature Inlet Temp | Upper Non-critical going high | Asserted | Reading 43 > Threshold 40 degrees C

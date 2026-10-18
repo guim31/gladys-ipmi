@@ -131,7 +131,7 @@ Das Widget **Server (IPMI)** hat zwei Modi:
   Grenzwert oder meldet einen Ausfall, oder wechselt von Warnung zu
   Kritisch. Er lässt sich auf einen Server und einen Schweregrad (Warnung
   oder Kritisch) beschränken. Variablen: Server, Sensor, Messwert,
-  Schweregrad. Höchstens fünf pro Server und Lesevorgang.
+  Schweregrad. Höchstens fünf pro Server und Lesevorgang; ein Sensor, der um seinen Grenzwert pendelt, wird erst nach 30 Minuten erneut gemeldet, außer er verschlechtert sich.
 - **Neuer Eintrag im Systemereignisprotokoll**: ein neuer Eintrag im SEL
   eines Servers (Grenzwert überschritten, Netzteil ausgefallen,
   Speicherfehler, Gehäuse geöffnet …). Bei jedem Lesen geprüft, höchstens

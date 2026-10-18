@@ -131,8 +131,7 @@ Le widget **Serveurs (IPMI)** a deux modes :
 - **Capteur hors seuil** : un capteur franchit un seuil ou signale une
   panne, ou passe d'Avertissement à Critique. Il peut être limité à un
   serveur et à une gravité (Avertissement ou Critique). Variables :
-  serveur, capteur, valeur lue, gravité. Cinq au plus par serveur et par
-  lecture.
+  serveur, capteur, valeur lue, gravité. Cinq au plus par serveur et par lecture ; un capteur qui oscille autour de son seuil n'est annoncé de nouveau qu'après 30 minutes, sauf s'il s'aggrave.
 - **Nouvelle entrée du journal système (SEL)** : une nouvelle entrée dans
   le SEL d'un serveur (seuil franchi, alimentation perdue, erreur mémoire,
   châssis ouvert…). Vérifié à chaque lecture, au plus une fois par minute ;

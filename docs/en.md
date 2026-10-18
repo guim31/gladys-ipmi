@@ -123,7 +123,7 @@ The **Servers (IPMI)** widget has two modes:
 - **Sensor out of range**: a sensor crosses a threshold or reports a
   failure, or goes from Warning to Critical. It can be limited to one
   server and to one severity (Warning or Critical). Variables: server,
-  sensor, reading, severity. At most five per server and per read.
+  sensor, reading, severity. At most five per server and per read; a sensor that swings around its threshold is announced again only after 30 minutes, unless it gets worse.
 - **New system event log entry**: a new entry in the SEL of a server (a
   threshold crossed, a power supply lost, a memory error, the chassis
   opened…). Checked at every read, at most once a minute; at most three per

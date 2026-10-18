@@ -40,6 +40,7 @@ export class FakeBmc {
     /** @type {Array<{ args: string[], env: string }>} */
     this.calls = [];
     this.powerActions = [];
+    this.noCipherSuites = false;
   }
 
   setSensors(text) {
@@ -59,6 +60,14 @@ export class FakeBmc {
   handle(args, { password }) {
     this.calls.push({ args, password });
     const verbose = args.includes('-v');
+    // Like ipmi_sim: no "Get Channel Cipher Suites", said on stderr.
+    const noise =
+      this.noCipherSuites && !args.includes('-C') ? 'Unable to Get Channel Cipher Suites\n' : '';
+    const result = this.answer(args, { password, verbose });
+    return { ...result, stderr: noise + result.stderr };
+  }
+
+  answer(args, { password, verbose }) {
     if (!this.reachable) {
       return fail(verbose ? fixture('error-unreachable.stderr.txt') : SESSION_FAILED);
     }
@@ -78,7 +87,16 @@ export class FakeBmc {
       return ok(`Dumping Sensor Data Repository to '${command[2]}'\n`);
     }
     if (text === 'sdr elist') {
-      return ok(this.on ? this.sdr : this.sdr.replace(/\d+ degrees C/g, 'No Reading'));
+      // Off: the BMC has no reading of the host sensors (temperatures, fans,
+      // power), status "ns"; the standby voltages and discrete states stay.
+      return ok(
+        this.on
+          ? this.sdr
+          : this.sdr.replace(
+              /\| \w+ (\s*\|[^|]*\|) [\d.]+ (degrees C|RPM|Watts)$/gm,
+              '| ns $1 No Reading',
+            ),
+      );
     }
     if (text === 'dcmi power reading') {
       return this.dcmi ? ok(this.dcmi) : fail(fixture('dcmi-unsupported.stderr.txt'));

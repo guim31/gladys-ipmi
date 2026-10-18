@@ -26,7 +26,13 @@ export function runIpmitool(args, { password = '', timeoutMs }) {
         killSignal: 'SIGKILL',
         maxBuffer: 4 * 1024 * 1024,
         // A minimal environment: nothing of the integration leaks to the child.
-        env: { PATH: process.env.PATH ?? '/usr/bin:/bin', HOME: '/tmp', IPMI_PASSWORD: password },
+        env: {
+          PATH: process.env.PATH ?? '/usr/bin:/bin',
+          HOME: '/tmp',
+          // The zone of Gladys (set by its supervisor): the SEL dates in local time.
+          ...(process.env.TZ ? { TZ: process.env.TZ } : {}),
+          IPMI_PASSWORD: password,
+        },
         windowsHide: true,
       },
       (err, stdout, stderr) => {

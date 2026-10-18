@@ -180,20 +180,20 @@ test('SEL trigger: the entries added after the first read, oldest first, once ea
   const world = await oneServer(t, { shape: 'dell' });
   assert.equal(eventsOf(world, TRIGGERS.SEL).length, 0, 'the existing log is recorded');
   world.bmc.addSelEntry(
-    '   5 | 10/18/2026 | 10:00:01 | Power Supply Status | Failure detected | Asserted',
-    '10/18/2026 10:00:01',
+    '   5 | 10/18/26 | 10:00:01 UTC | Power Supply Status | Failure detected | Asserted',
+    '10/18/26 10:00:01 UTC',
   );
   world.bmc.addSelEntry(
-    '   6 | 10/18/2026 | 10:00:02 | Memory ECC | Correctable ECC | Asserted',
-    '10/18/2026 10:00:02',
+    '   6 | 10/18/26 | 10:00:02 UTC | Memory ECC | Correctable ECC | Asserted',
+    '10/18/26 10:00:02 UTC',
   );
   world.clock.advance(60_000);
   await world.hub.pollAll();
   assert.deepEqual(
     eventsOf(world, TRIGGERS.SEL).map((e) => [e.data.message, e.data.created]),
     [
-      ['Power Supply Status, Failure detected', '2026-10-18 10:00:01'],
-      ['Memory ECC, Correctable ECC', '2026-10-18 10:00:02'],
+      ['Power Supply Status, Failure detected', '2026-10-18 10:00:01 UTC'],
+      ['Memory ECC, Correctable ECC', '2026-10-18 10:00:02 UTC'],
     ],
   );
   world.clock.advance(60_000);
@@ -205,7 +205,7 @@ test('the SEL seen survives a restart: nothing announced twice', async (t) => {
   const clock = createClock();
   const bmc = new FakeBmc({ shape: 'dell' });
   const first = await createWorld({ clock, bmcs: { [HOST_1]: bmc } });
-  bmc.addSelEntry('   5 | 10/18/2026 | 10:00:01 | Fan Fan2 RPM | Lower Critical | Asserted', 'x');
+  bmc.addSelEntry('   5 | 10/18/26 | 10:00:01 UTC | Fan Fan2 RPM | Lower Critical | Asserted', 'x');
   clock.advance(60_000);
   await first.hub.pollAll();
   assert.equal(eventsOf(first, TRIGGERS.SEL).length, 1);
@@ -332,4 +332,41 @@ test('the logs: a normal cycle writes nothing at info, the password never', asyn
   await world.hub.pollAll();
   assert.equal(lines.length, 2, lines.join('\n'));
   assert.ok(lines.every((line) => !line.includes(PASSWORD)));
+});
+
+test('a sensor swinging around its threshold is announced once per half hour', async (t) => {
+  const world = await oneServer(t);
+  const ok = fixture('sdr-elist-ok.txt');
+  const low = ok.replace('| ok  | 29.1 | 4200 RPM', '| lnc | 29.1 | 1100 RPM');
+  for (let read = 0; read < 6; read += 1) {
+    world.bmc.setSensors(read % 2 ? ok : low);
+    world.clock.advance(60_000);
+    await world.hub.pollAll();
+  }
+  assert.equal(eventsOf(world, TRIGGERS.SENSOR).length, 1);
+  // Worse is always said.
+  world.bmc.setSensors(ok.replace('| ok  | 29.1 | 4200 RPM', '| lcr | 29.1 | 500 RPM'));
+  world.clock.advance(60_000);
+  await world.hub.pollAll();
+  assert.equal(eventsOf(world, TRIGGERS.SENSOR).at(-1).data.level, 'critical');
+  // After the cooldown, a new swing is said again.
+  world.bmc.setSensors(ok);
+  world.clock.advance(31 * 60_000);
+  await world.hub.pollAll();
+  world.bmc.setSensors(low);
+  await world.hub.pollAll();
+  assert.equal(eventsOf(world, TRIGGERS.SENSOR).length, 3);
+});
+
+test('a power cycle does not announce again a sensor already out of range', async (t) => {
+  const world = await oneServer(t);
+  world.bmc.setSensors(fixture('sdr-elist-alert.txt'));
+  await world.hub.pollAll();
+  const count = eventsOf(world, TRIGGERS.SENSOR).length;
+  world.bmc.on = false;
+  world.clock.advance(60 * 60_000);
+  await world.hub.pollAll();
+  world.bmc.on = true;
+  await world.hub.pollAll();
+  assert.equal(eventsOf(world, TRIGGERS.SENSOR).length, count, 'no reading is no change');
 });

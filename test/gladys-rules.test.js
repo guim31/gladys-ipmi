@@ -79,7 +79,8 @@ for (const scenario of scenarios) {
         );
       }
 
-      assert.ok(device.features.length >= 5, `${where}: features missing`);
+      // A server first seen off has only its standby readings (power, health, counter).
+      assert.ok(device.features.length >= 3, `${where}: features missing`);
       const externalIds = new Set();
       const names = new Set();
       for (const feature of device.features) {

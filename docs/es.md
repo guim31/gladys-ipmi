@@ -132,7 +132,7 @@ El widget **Servidores (IPMI)** tiene dos modos:
 - **Sensor fuera de umbral**: un sensor cruza un umbral o indica un fallo,
   o pasa de Advertencia a Crítico. Se puede limitar a un servidor y a una
   gravedad (Advertencia o Crítico). Variables: servidor, sensor, lectura,
-  gravedad. Cinco como máximo por servidor y por lectura.
+  gravedad. Cinco como máximo por servidor y por lectura; un sensor que oscila alrededor de su umbral solo se anuncia de nuevo tras 30 minutos, salvo si empeora.
 - **Nueva entrada del registro de eventos**: una nueva entrada en el SEL de
   un servidor (umbral superado, fuente perdida, error de memoria, chasis
   abierto…). Se comprueba en cada lectura, como máximo una vez por minuto;

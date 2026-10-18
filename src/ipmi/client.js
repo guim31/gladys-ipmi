@@ -46,6 +46,16 @@ export const SEL_TAIL = 20;
 // `off` (a hard power cut).
 export const POWER_ACTIONS = Object.freeze(['on', 'soft', 'reset', 'cycle']);
 
+const NO_CIPHER_SUITES = /Unable to Get Channel Cipher Suites/;
+// The BMC refuses the suite given: let ipmitool choose again.
+const CIPHER_REFUSED = /no matching cipher suite|invalid cipher suite/i;
+// Each client its own SDR cache file: an old client closing after a
+// reconfiguration must not remove the file of the new one.
+let clientCount = 0;
+const FALLBACK_CIPHER = '3';
+// How long the verbose diagnosis of a session failure is reused.
+const DIAGNOSIS_MS = 10 * 60_000;
+
 // Lines of ipmitool's stderr that are not errors.
 const NOISE =
   /Unable to Get Channel Cipher Suites|Get HPM\.x Capabilities|Loading IANA PEN|Running Get VSO|Discovered IPMB|Invalid completion code received: Insufficient privilege level|^\s*$/;
@@ -86,7 +96,11 @@ export class IpmiClient {
     this.run = run ?? runIpmitool;
     this.timings = { ...CLIENT_TIMINGS, ...timings };
     this.now = now ?? (() => Date.now());
-    this.cacheFile = join(cacheDir ?? tmpdir(), `gladys-ipmi-sdr-${slot}.cache`);
+    clientCount += 1;
+    this.cacheFile = join(
+      cacheDir ?? tmpdir(),
+      `gladys-ipmi-sdr-${slot}-${process.pid}-${clientCount}.cache`,
+    );
     this.cacheReady = false;
     this.infoAt = 0;
     this.fru = null;
@@ -94,6 +108,15 @@ export class IpmiClient {
     /** DCMI power reading: undefined not tried yet, false unsupported. */
     this.dcmi = undefined;
     this.selStamp = null;
+    /**
+     * IPMI 2.0 cipher suite. ipmitool 1.8.19 picks the best one with "Get
+     * Channel Cipher Suites"; a BMC that does not answer it costs about 7 s
+     * per command (measured on ipmi_sim). Then suite 3, the one every IPMI 2.0
+     * BMC supports (HMAC-SHA1, AES-128) and ipmitool's former default, is given.
+     */
+    this.cipher = null;
+    /** @type {{ kind: string, at: number }|null} the last session failure diagnosed */
+    this.diagnosed = null;
     this.chain = Promise.resolve();
     this.closed = false;
   }
@@ -115,6 +138,7 @@ export class IpmiClient {
       '3',
       '-R',
       '2',
+      ...(this.cipher ? ['-C', this.cipher] : []),
       ...(cache && this.cacheReady ? ['-S', this.cacheFile] : []),
     ];
   }
@@ -126,18 +150,33 @@ export class IpmiClient {
     return next;
   }
 
-  async exec(command, { privilege = 'USER', cache = false, timeoutMs } = {}) {
+  async exec(command, { privilege = 'USER', cache = false, timeoutMs, partial = false } = {}) {
+    if (this.closed) {
+      // A read in flight when the configuration changed: the new client takes over.
+      throw new IpmiError(ERROR_KINDS.FAILED, 'client closed');
+    }
     const result = await this.run([...this.args(privilege, { cache }), ...command], {
       password: this.password,
       timeoutMs: timeoutMs ?? this.timings.callTimeoutMs,
     });
-    if (result.code === 0 && !result.timedOut) {
+    if (this.iface === 'lanplus' && this.cipher === null && NO_CIPHER_SUITES.test(result.stderr)) {
+      this.cipher = FALLBACK_CIPHER;
+    }
+    if (this.cipher !== null && result.code !== 0 && CIPHER_REFUSED.test(result.stderr)) {
+      this.cipher = null;
+    }
+    const output = `${result.stderr}\n${result.stdout}`;
+    // `sdr elist` exits 1 when one record fails, after printing the others.
+    const usable =
+      partial && !result.timedOut && result.stdout.trim() !== '' && !isSessionFailure(output);
+    if ((result.code === 0 && !result.timedOut) || usable) {
+      this.diagnosed = null;
       return result.stdout;
     }
-    throw await this.failure(result);
+    throw await this.failure(result, privilege);
   }
 
-  async failure(result) {
+  async failure(result, privilege = 'USER') {
     if (result.missing) {
       return new IpmiError(ERROR_KINDS.NO_TOOL, 'ipmitool is not installed');
     }
@@ -147,7 +186,14 @@ export class IpmiClient {
     const output = `${result.stderr}\n${result.stdout}`;
     let kind = classifyError(output);
     if (kind === null && isSessionFailure(output)) {
-      // ipmitool only says why in verbose mode: ask again, once.
+      kind =
+        this.diagnosed && this.now() - this.diagnosed.at < DIAGNOSIS_MS
+          ? this.diagnosed.kind
+          : null;
+    }
+    if (kind === null && isSessionFailure(output)) {
+      // ipmitool only says why in verbose mode: ask again, once. A BMC that
+      // does not answer costs the whole timeout: the diagnosis is kept a while.
       const verbose = await this.run(
         [...this.args('USER', { verbose: true }), 'chassis', 'status'],
         {
@@ -155,7 +201,13 @@ export class IpmiClient {
           timeoutMs: this.timings.callTimeoutMs,
         },
       );
-      kind = classifyError(`${verbose.stderr}\n${verbose.stdout}`) ?? ERROR_KINDS.UNREACHABLE;
+      if (verbose.code === 0) {
+        // The User level works: the higher one asked (a power command) does not.
+        kind = privilege === 'USER' ? ERROR_KINDS.FAILED : ERROR_KINDS.PRIVILEGE;
+      } else {
+        kind = classifyError(`${verbose.stderr}\n${verbose.stdout}`) ?? ERROR_KINDS.UNREACHABLE;
+        this.diagnosed = { kind, at: this.now() };
+      }
     }
     return new IpmiError(kind ?? ERROR_KINDS.FAILED, reason(result));
   }
@@ -168,6 +220,7 @@ export class IpmiClient {
       this.cacheReady = true;
     } catch (err) {
       if (err.kind === ERROR_KINDS.UNREACHABLE) {
+        this.infoAt = 0; // tried again at the next read, not in an hour
         throw err;
       }
       // Without cache, `sdr elist` reads the repository each time: slower, same result.
@@ -205,6 +258,7 @@ export class IpmiClient {
       sdr = await this.call(['sdr', 'elist'], {
         cache: true,
         timeoutMs: this.timings.sensorsTimeoutMs,
+        partial: true,
       });
     } catch (err) {
       if (!this.cacheReady || err.kind !== ERROR_KINDS.FAILED) {
@@ -212,7 +266,10 @@ export class IpmiClient {
       }
       // A stale or broken cache file: read without, dump again next hour.
       this.cacheReady = false;
-      sdr = await this.call(['sdr', 'elist'], { timeoutMs: this.timings.sensorsTimeoutMs });
+      sdr = await this.call(['sdr', 'elist'], {
+        timeoutMs: this.timings.sensorsTimeoutMs,
+        partial: true,
+      });
     }
     let dcmiWatts = null;
     if (this.dcmi !== false) {

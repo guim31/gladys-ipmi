@@ -280,3 +280,18 @@ long, et sur un « Sie »/« Ihr… » de politesse en allemand. Le store exige 
   `chassis_control` (script) porte l'état d'alimentation ; DCMI non pris en charge ; dates du SEL
   « Pre-Init ». Fixtures capturées : `test/fixtures/ipmitool/` ; jeu « façon Dell R720 » écrit à
   la main dans `dell-shaped/` (signalé dans son README).
+- **Suite de chiffrement** : `ipmitool` 1.8.19 négocie la suite par « Get Channel Cipher Suites » ;
+  un BMC qui ne répond pas à cette commande coûte **7 s par appel** (mesuré sur `ipmi_sim`, 75 ms
+  avec `-C 3`). Le client passe à `-C 3` dès qu'il voit « Unable to Get Channel Cipher Suites », et
+  rend la main à `ipmitool` si le BMC refuse ensuite la suite 3.
+- **Diagnostic** d'un échec de session (relance `-v`) gardé 10 minutes : un BMC muet paie sinon deux
+  fois le délai à chaque lecture. Une relance `-v` qui réussit au niveau User après un échec au
+  niveau Operator = privilège insuffisant.
+- **Date du SEL en 1.8.19** : `10/18/26 | 07:55:43 UTC` (année sur deux chiffres, fuseau après
+  l'heure, fuseau du conteneur : `TZ` est transmis à `ipmitool`) ; identifiants en hexadécimal.
+  Vérifié sur le simulateur horloge réglée (`sel time set "10/18/26 09:58:00"`).
+- **Anti-rebond** : un capteur qui oscille autour d'un seuil (ventilateurs lents de Supermicro)
+  n'est réannoncé qu'après 30 minutes, sauf aggravation (`SENSOR_COOLDOWN_MS`).
+- `sdr elist` peut sortir en 1 après avoir imprimé les autres capteurs : sa sortie est gardée.
+- `ipmi_sim` ne fait pas l'arrêt doux (`chassis power soft` : « Unspecified error », il faut une VM
+  reliée) ; `on`, `off`, `reset`, `cycle` y marchent. Il ne fait pas DCMI non plus.

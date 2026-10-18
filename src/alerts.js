@@ -14,6 +14,10 @@ import { healthRank } from './ipmi/model.js';
 // SEL entries remembered per server: more than any read returns.
 export const MAX_SEEN_ENTRIES = 200;
 
+// A sensor that swings around a threshold (slow fans near their lower limit)
+// is announced again only after this long, unless it gets worse.
+export const SENSOR_COOLDOWN_MS = 30 * 60_000;
+
 /** The key of a sensor: two sensors may share a name ("Temp" on a Dell). */
 export const sensorKey = (sensor) => `${sensor.number}|${sensor.name}`;
 
@@ -38,10 +42,11 @@ export class Watcher {
    * Record the power state and the sensor severities of a server.
    * @param {string} key
    * @param {{ on: boolean|null, sensors: Array<{ name: string, number: number, severity: string|null }> }} state
+   * @param {number} [now] for the cooldown of the sensor announcements
    * @returns {{ poweredOn: boolean, poweredOff: boolean, worse: Array<object> }}
    *   `worse`: the sensors now Warning or Critical that were better before
    */
-  observe(key, { on, sensors }) {
+  observe(key, { on, sensors }, now = Date.now()) {
     const entry = this.entry(key);
     const result = { poweredOn: false, poweredOff: false, worse: [] };
     if (on !== null) {
@@ -67,10 +72,26 @@ export class Watcher {
       // A sensor not seen before, on a server already known: it was fine.
       const previous = known[sensorKey(sensor)] ?? 'OK';
       if (healthRank(sensor.severity) > healthRank(previous)) {
-        result.worse.push(sensor);
+        entry.fired ??= {};
+        const last = entry.fired[sensorKey(sensor)];
+        const quiet =
+          last &&
+          now - last.at < SENSOR_COOLDOWN_MS &&
+          healthRank(last.severity) >= healthRank(sensor.severity);
+        if (!quiet) {
+          entry.fired[sensorKey(sensor)] = { severity: sensor.severity, at: now };
+          result.worse.push(sensor);
+        }
       }
     }
     entry.sensors = next;
+    if (entry.fired) {
+      for (const [name, last] of Object.entries(entry.fired)) {
+        if (now - last.at >= SENSOR_COOLDOWN_MS) {
+          delete entry.fired[name];
+        }
+      }
+    }
     return result;
   }
 

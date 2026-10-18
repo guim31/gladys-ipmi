@@ -57,7 +57,7 @@ function powerDraw(dcmiWatts, sensors) {
   if (watts.length === 0) {
     return null;
   }
-  const total = watts.find((sensor) => /consum|total|system/i.test(sensor.name));
+  const total = watts.find((sensor) => /consum|total|system|meter/i.test(sensor.name));
   if (total) {
     return total.value;
   }

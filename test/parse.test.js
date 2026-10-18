@@ -116,9 +116,9 @@ test('dcmi power reading: the instantaneous power, nothing when deactivated', ()
 });
 
 test('sel info and sel elist: entries, newest first, with a key that survives a clear', () => {
-  assert.deepEqual(parseSelInfo(fixture('sel-info-6.txt')), {
-    entries: 5,
-    lastAdd: 'S+ 70/010 11:47:44',
+  assert.deepEqual(parseSelInfo(fixture('sel-info-dated.txt')), {
+    entries: 14,
+    lastAdd: '10/18/26 07:55:43 UTC',
   });
   assert.deepEqual(parseSelInfo('Entries          : 0\nLast Add Time    : Not Available\n'), {
     entries: 0,
@@ -135,14 +135,32 @@ test('sel info and sel elist: entries, newest first, with a key that survives a 
   });
   const dell = parseSelList(fixture('dell-shaped/sel-elist.txt'));
   assert.deepEqual(dell[0], {
-    key: '4|10/18/2026|06:03:11',
+    key: '4|10/18/26|06:03:11 UTC',
     id: '4',
     message:
       'Temperature Inlet Temp, Upper Non-critical going high, Reading 43 > Threshold 42 degrees C',
-    created: '2026-10-18 06:03:11',
+    created: '2026-10-18 06:03:11 UTC',
     asserted: true,
   });
   assert.equal(dell[3].message, 'Event Logging Disabled SEL, Log area reset/cleared');
+  // Captured from ipmitool 1.8.19 on the simulator with its clock set: hex ids,
+  // two-digit year, the zone after the time; deasserted entries kept.
+  const dated = parseSelList(fixture('sel-elist-dated.txt'));
+  assert.deepEqual(
+    dated.map((entry) => [entry.id, entry.created, entry.asserted]),
+    [
+      ['e', '2026-10-18 07:55:43 UTC', true],
+      ['d', '2026-10-18 07:55:39 UTC', false],
+      ['c', '2026-10-18 07:55:39 UTC', false],
+      ['b', '2026-10-18 07:55:39 UTC', false],
+    ],
+  );
+  // The older format of ipmitool: four-digit year, bare time.
+  assert.equal(
+    parseSelList('   1 | 10/18/2026 | 07:55:43 | Fan FAN1 | Lower Critical going low | Asserted')[0]
+      .created,
+    '2026-10-18 07:55:43',
+  );
 });
 
 test('fru print and mc info: maker, product, serial, firmware', () => {
@@ -264,4 +282,48 @@ test('Supermicro-style names: input power summed, margins ignored', () => {
   assert.equal(server.cpu, 41);
   assert.equal(server.hottest, 41, 'a margin is not a temperature');
   assert.equal(server.intake, null, 'no inlet sensor: no guess');
+});
+
+test('discrete failures in the wording of ipmitool, and no false alarm', () => {
+  const severity = (reading) =>
+    parseSdrList(`Sensor           | 60h | ok  |  3.1 | ${reading}`)[0].severity;
+  for (const reading of [
+    'Presence detected, IERR',
+    'Thermal Trip',
+    'FRB1/BIST failure',
+    'Uncorrectable ECC',
+    'Drive Present, In Failed Array',
+    'Battery failed',
+    'Configuration error',
+    'Non-Redundant: Insufficient Resources',
+  ]) {
+    assert.equal(severity(reading), 'Critical', reading);
+  }
+  for (const reading of [
+    'Predictive Failure',
+    'Drive Present, In Critical Array',
+    'Redundancy Degraded',
+  ]) {
+    assert.equal(severity(reading), 'Warning', reading);
+  }
+  for (const reading of [
+    'Presence detected',
+    'Fully Redundant',
+    'Drive Present',
+    'Power off/down',
+    '',
+  ]) {
+    assert.equal(severity(reading), 'OK', reading);
+  }
+});
+
+test('the iLO "Power Meter" is the total power draw', () => {
+  const sensors = parseSdrList(
+    [
+      'Power Supply 1   | 40h | ok  | 10.1 | 85 Watts',
+      'Power Supply 2   | 41h | ok  | 10.2 | 90 Watts',
+      'Power Meter      | 42h | ok  |  7.1 | 175 Watts',
+    ].join('\n'),
+  );
+  assert.equal(parseServer({ chassis: { on: true, faults: [] }, sensors }).watts, 175);
 });

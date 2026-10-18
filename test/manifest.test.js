@@ -130,8 +130,8 @@ test('the scene triggers are the ones the hub fires, with their filters and vari
   await world.hub.pollAll();
   bmc.on = true;
   bmc.addSelEntry(
-    '   5 | 10/18/2026 | 10:01:00 | Fan Fan2 RPM | Lower Critical going low | Asserted',
-    '10/18/2026 10:01:00',
+    '   5 | 10/18/26 | 10:01:00 UTC | Fan Fan2 RPM | Lower Critical going low | Asserted',
+    '10/18/26 10:01:00 UTC',
   );
   clock.advance(world.hub.timings.selEveryMs);
   await world.hub.pollAll();

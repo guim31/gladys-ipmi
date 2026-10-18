@@ -226,6 +226,7 @@ export class IpmiHub {
     this.stopped = true;
     clearTimeout(this.pollTimer);
     for (const record of this.records.values()) {
+      record.dropped = true;
       clearTimeout(record.retryTimer);
       clearTimeout(record.commandTimer);
     }
@@ -431,7 +432,7 @@ export class IpmiHub {
 
     const name = this.serverName(record);
     const id = this.deviceId(slot);
-    const seen = this.watcher.observe(key, server);
+    const seen = this.watcher.observe(key, server, this.now());
     // A feature once seen stays: a server off reports no processor
     // temperature, and its device must not change at every power cycle.
     server.known = this.watcher.rememberFeatures(
@@ -447,7 +448,9 @@ export class IpmiHub {
       });
     }
     for (const sensor of seen.worse.slice(0, MAX_SENSOR_EVENTS)) {
-      const alert = server.alerts.find((item) => item.number === sensor.number) ?? sensor;
+      const alert =
+        server.alerts.find((item) => item.number === sensor.number && item.name === sensor.name) ??
+        sensor;
       logger.debug(`${name}: ${sensor.name} ${sensor.severity}`);
       await this.fireEvent(TRIGGERS.SENSOR, {
         server: id,
