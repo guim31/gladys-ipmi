@@ -1,177 +1,1004 @@
 {
   "manifest_version": 1,
   "type": "device",
-  "name": "Demo Devices Template",
+  "name": "IPMI (iDRAC, iLO, Supermicro)",
   "description": {
-    "en": "Starter template showing sensors, a switch, a dimmable light and a smart plug.",
-    "fr": "Template de démarrage : capteurs, interrupteur, lampe variable et prise connectée."
+    "en": "Servers via IPMI (iDRAC, iLO, Supermicro…): power, health, watts, temperatures, fans, event log.",
+    "fr": "Serveurs par IPMI (iDRAC, iLO, Supermicro…) : marche, santé, watts, températures, ventilateurs, SEL.",
+    "de": "Server über IPMI (iDRAC, iLO, Supermicro …): Betrieb, Zustand, Watt, Temperaturen, Lüfter, SEL.",
+    "es": "Servidores por IPMI (iDRAC, iLO, Supermicro…): encendido, estado, vatios, temperatura, SEL."
   },
   "version": "1.0.0",
-  "docker_image": "ghcr.io/gladysassistant/integration-template-js:1.0.0",
+  "docker_image": "ghcr.io/guim31/gladys-ipmi:1.0.0",
   "gladys_version": ">=5.1.0",
-  "cover_image": "https://raw.githubusercontent.com/GladysAssistant/integration-template-js/master/cover.png",
-  "categories": ["lighting", "security", "environment"],
-  "transports": ["local", "cloud"],
+  "cover_image": "https://raw.githubusercontent.com/guim31/gladys-ipmi/main/cover.png",
+  "categories": ["network"],
+  "transports": ["local"],
   "config_schema": [
     {
       "key": "intro",
       "type": "section",
-      "label": { "en": "Getting started", "fr": "Pour commencer" },
+      "label": {
+        "en": "Your servers",
+        "fr": "Vos serveurs",
+        "de": "Deine Server",
+        "es": "Sus servidores"
+      },
       "description": {
-        "en": "The demo weather station reads real data from the free Open-Meteo API: pick the coordinates to observe. No account, no API key.",
-        "fr": "La station météo de démonstration lit de vraies données via l'API gratuite Open-Meteo : choisissez les coordonnées à observer. Pas de compte, pas de clé d'API."
+        "en": "Follow rack and tower servers through their management controller (BMC) and IPMI over LAN: Dell iDRAC 6 to 9, HP iLO 2 to 5, Supermicro, ASRock Rack, Lenovo IMM, Fujitsu iRMC. Enable IPMI over LAN on the BMC, enter its address and an account, then add the server from the Discover tab.",
+        "fr": "Suivez vos serveurs par leur contrôleur de gestion (BMC) et IPMI sur LAN : Dell iDRAC 6 à 9, HP iLO 2 à 5, Supermicro, ASRock Rack, Lenovo IMM, Fujitsu iRMC. Activez IPMI sur LAN dans le BMC, saisissez son adresse et un compte, puis ajoutez le serveur depuis l'onglet Découverte.",
+        "de": "Überwache deine Server über ihren Management-Controller (BMC) und IPMI über LAN: Dell iDRAC 6 bis 9, HP iLO 2 bis 5, Supermicro, ASRock Rack, Lenovo IMM, Fujitsu iRMC. Aktiviere IPMI über LAN im BMC, gib seine Adresse und ein Konto ein und füge den Server im Tab „Entdecken“ hinzu.",
+        "es": "Siga sus servidores mediante su controlador de gestión (BMC) e IPMI sobre LAN: Dell iDRAC 6 a 9, HP iLO 2 a 5, Supermicro, ASRock Rack, Lenovo IMM, Fujitsu iRMC. Active IPMI sobre LAN en el BMC, introduzca su dirección y una cuenta, y añada el servidor desde la pestaña Descubrir."
       },
       "links": [
         {
-          "url": "https://open-meteo.com/en/docs",
-          "label": { "en": "Open-Meteo documentation", "fr": "Documentation Open-Meteo" }
+          "url": "https://github.com/guim31/gladys-ipmi/blob/main/docs/en.md",
+          "label": {
+            "en": "Setup guide",
+            "fr": "Guide d'installation",
+            "de": "Installationsanleitung",
+            "es": "Guía de instalación"
+          }
         }
       ]
     },
     {
-      "key": "latitude",
-      "type": "number",
-      "label": { "en": "Latitude", "fr": "Latitude" },
-      "description": {
-        "en": "Latitude used for the demo weather sensor.",
-        "fr": "Latitude utilisée par le capteur météo de démonstration."
+      "key": "bmc_1_host",
+      "type": "string",
+      "label": {
+        "en": "BMC address",
+        "fr": "Adresse du BMC",
+        "de": "BMC-Adresse",
+        "es": "Dirección del BMC"
       },
-      "placeholder": { "en": "e.g. 48.8566", "fr": "ex. 48.8566" },
-      "required": true,
-      "default": 48.8566,
-      "min": -90,
-      "max": 90
-    },
-    {
-      "key": "longitude",
-      "type": "number",
-      "label": { "en": "Longitude", "fr": "Longitude" },
-      "description": {
-        "en": "Longitude used for the demo weather sensor.",
-        "fr": "Longitude utilisée par le capteur météo de démonstration."
-      },
-      "placeholder": { "en": "e.g. 2.3522", "fr": "ex. 2.3522" },
-      "required": true,
-      "default": 2.3522,
-      "min": -180,
-      "max": 180
-    },
-    {
-      "key": "unit",
-      "type": "select",
-      "label": { "en": "Temperature unit", "fr": "Unité de température" },
       "required": false,
-      "default": "celsius",
+      "placeholder": {
+        "en": "192.168.1.30",
+        "fr": "192.168.1.30",
+        "de": "192.168.1.30",
+        "es": "192.168.1.30"
+      },
+      "description": {
+        "en": "IP address or host name of the iDRAC, iLO or other BMC, with :port when not 623: 192.168.1.30, idrac.lan or idrac.lan:6230.",
+        "fr": "Adresse IP ou nom d'hôte de l'iDRAC, de l'iLO ou d'un autre BMC, avec :port si ce n'est pas 623 : 192.168.1.30, idrac.lan ou idrac.lan:6230.",
+        "de": "IP-Adresse oder Hostname des iDRAC, iLO oder eines anderen BMC, mit :Port, falls nicht 623: 192.168.1.30, idrac.lan oder idrac.lan:6230.",
+        "es": "Dirección IP o nombre de host del iDRAC, iLO u otro BMC, con :puerto si no es 623: 192.168.1.30, idrac.lan o idrac.lan:6230."
+      }
+    },
+    {
+      "key": "bmc_1_username",
+      "type": "string",
+      "label": {
+        "en": "User name",
+        "fr": "Nom d'utilisateur",
+        "de": "Benutzername",
+        "es": "Nombre de usuario"
+      },
+      "required": false,
+      "description": {
+        "en": "An IPMI account of the BMC: the User privilege is enough, Operator to allow power control.",
+        "fr": "Un compte IPMI du BMC : le privilège Utilisateur suffit, Opérateur pour autoriser le pilotage.",
+        "de": "Ein IPMI-Konto des BMC: Die Berechtigung User reicht, Operator, um die Stromsteuerung zu erlauben.",
+        "es": "Una cuenta IPMI del BMC: basta el privilegio Usuario, Operador para permitir el control de la alimentación."
+      }
+    },
+    {
+      "key": "bmc_1_password",
+      "type": "secret",
+      "label": {
+        "en": "Password",
+        "fr": "Mot de passe",
+        "de": "Passwort",
+        "es": "Contraseña"
+      },
+      "required": false
+    },
+    {
+      "key": "bmc_1_name",
+      "type": "string",
+      "label": {
+        "en": "Name (optional)",
+        "fr": "Nom (facultatif)",
+        "de": "Name (optional)",
+        "es": "Nombre (opcional)"
+      },
+      "required": false,
+      "description": {
+        "en": "Shown in the device name, the widget and the messages. By default, the product name the BMC gives, or its address.",
+        "fr": "Affiché dans le nom de l'appareil, le widget et les messages. Par défaut, le nom du produit donné par le BMC, ou son adresse.",
+        "de": "Wird im Gerätenamen, im Widget und in den Nachrichten angezeigt. Standardmäßig der Produktname, den der BMC meldet, oder seine Adresse.",
+        "es": "Se muestra en el nombre del dispositivo, el widget y los mensajes. Por defecto, el nombre del producto que da el BMC, o su dirección."
+      }
+    },
+    {
+      "key": "second_bmc",
+      "type": "section",
+      "label": {
+        "en": "Second BMC (optional)",
+        "fr": "Deuxième BMC (facultatif)",
+        "de": "Zweiter BMC (optional)",
+        "es": "Segundo BMC (opcional)"
+      },
+      "description": {
+        "en": "Another server, with its own BMC address and account.",
+        "fr": "Un autre serveur, avec l'adresse et le compte de son BMC.",
+        "de": "Ein weiterer Server mit eigener BMC-Adresse und eigenem Konto.",
+        "es": "Otro servidor, con la dirección y la cuenta de su BMC."
+      }
+    },
+    {
+      "key": "bmc_2_host",
+      "type": "string",
+      "label": {
+        "en": "Second BMC address",
+        "fr": "Adresse du deuxième BMC",
+        "de": "Adresse des zweiten BMC",
+        "es": "Dirección del segundo BMC"
+      },
+      "required": false,
+      "placeholder": {
+        "en": "192.168.1.30",
+        "fr": "192.168.1.30",
+        "de": "192.168.1.30",
+        "es": "192.168.1.30"
+      }
+    },
+    {
+      "key": "bmc_2_username",
+      "type": "string",
+      "label": {
+        "en": "Second user name",
+        "fr": "Deuxième nom d'utilisateur",
+        "de": "Zweiter Benutzername",
+        "es": "Segundo nombre de usuario"
+      },
+      "required": false
+    },
+    {
+      "key": "bmc_2_password",
+      "type": "secret",
+      "label": {
+        "en": "Second password",
+        "fr": "Deuxième mot de passe",
+        "de": "Zweites Passwort",
+        "es": "Segunda contraseña"
+      },
+      "required": false
+    },
+    {
+      "key": "bmc_2_name",
+      "type": "string",
+      "label": {
+        "en": "Second name (optional)",
+        "fr": "Deuxième nom (facultatif)",
+        "de": "Zweiter Name (optional)",
+        "es": "Segundo nombre (opcional)"
+      },
+      "required": false
+    },
+    {
+      "key": "third_bmc",
+      "type": "section",
+      "label": {
+        "en": "Third BMC (optional)",
+        "fr": "Troisième BMC (facultatif)",
+        "de": "Dritter BMC (optional)",
+        "es": "Tercer BMC (opcional)"
+      },
+      "description": {
+        "en": "Another server, with its own BMC address and account.",
+        "fr": "Un autre serveur, avec l'adresse et le compte de son BMC.",
+        "de": "Ein weiterer Server mit eigener BMC-Adresse und eigenem Konto.",
+        "es": "Otro servidor, con la dirección y la cuenta de su BMC."
+      }
+    },
+    {
+      "key": "bmc_3_host",
+      "type": "string",
+      "label": {
+        "en": "Third BMC address",
+        "fr": "Adresse du troisième BMC",
+        "de": "Adresse des dritten BMC",
+        "es": "Dirección del tercer BMC"
+      },
+      "required": false,
+      "placeholder": {
+        "en": "192.168.1.30",
+        "fr": "192.168.1.30",
+        "de": "192.168.1.30",
+        "es": "192.168.1.30"
+      }
+    },
+    {
+      "key": "bmc_3_username",
+      "type": "string",
+      "label": {
+        "en": "Third user name",
+        "fr": "Troisième nom d'utilisateur",
+        "de": "Dritter Benutzername",
+        "es": "Tercer nombre de usuario"
+      },
+      "required": false
+    },
+    {
+      "key": "bmc_3_password",
+      "type": "secret",
+      "label": {
+        "en": "Third password",
+        "fr": "Troisième mot de passe",
+        "de": "Drittes Passwort",
+        "es": "Tercera contraseña"
+      },
+      "required": false
+    },
+    {
+      "key": "bmc_3_name",
+      "type": "string",
+      "label": {
+        "en": "Third name (optional)",
+        "fr": "Troisième nom (facultatif)",
+        "de": "Dritter Name (optional)",
+        "es": "Tercer nombre (opcional)"
+      },
+      "required": false
+    },
+    {
+      "key": "options",
+      "type": "section",
+      "label": {
+        "en": "Options",
+        "fr": "Options",
+        "de": "Optionen",
+        "es": "Opciones"
+      },
+      "description": {
+        "en": "Only the servers added to Gladys receive values; the scene triggers and the widget work for every server.",
+        "fr": "Seuls les serveurs ajoutés à Gladys reçoivent des valeurs ; les déclencheurs de scène et le widget fonctionnent pour tous les serveurs.",
+        "de": "Nur die zu Gladys hinzugefügten Server erhalten Werte; die Szenen-Auslöser und das Widget funktionieren für alle Server.",
+        "es": "Solo los servidores añadidos a Gladys reciben valores; los disparadores de escena y el widget funcionan para todos los servidores."
+      }
+    },
+    {
+      "key": "interface",
+      "type": "select",
+      "label": {
+        "en": "IPMI interface",
+        "fr": "Interface IPMI",
+        "de": "IPMI-Schnittstelle",
+        "es": "Interfaz IPMI"
+      },
+      "description": {
+        "en": "IPMI 2.0 (lanplus, encrypted) for every BMC since about 2008. IPMI 1.5 (lan) only for an older BMC that refuses it.",
+        "fr": "IPMI 2.0 (lanplus, chiffré) pour tout BMC depuis 2008 environ. IPMI 1.5 (lan) seulement pour un BMC plus ancien qui le refuse.",
+        "de": "IPMI 2.0 (lanplus, verschlüsselt) für jeden BMC seit etwa 2008. IPMI 1.5 (lan) nur für einen älteren BMC, der es ablehnt.",
+        "es": "IPMI 2.0 (lanplus, cifrado) para todo BMC desde 2008 aproximadamente. IPMI 1.5 (lan) solo para un BMC más antiguo que lo rechace."
+      },
+      "required": false,
+      "default": "lanplus",
       "options": [
-        { "value": "celsius", "label": { "en": "Celsius", "fr": "Celsius" } },
-        { "value": "fahrenheit", "label": { "en": "Fahrenheit", "fr": "Fahrenheit" } }
+        {
+          "value": "lanplus",
+          "label": {
+            "en": "IPMI 2.0 (lanplus)",
+            "fr": "IPMI 2.0 (lanplus)",
+            "de": "IPMI 2.0 (lanplus)",
+            "es": "IPMI 2.0 (lanplus)"
+          }
+        },
+        {
+          "value": "lan",
+          "label": {
+            "en": "IPMI 1.5 (lan)",
+            "fr": "IPMI 1.5 (lan)",
+            "de": "IPMI 1.5 (lan)",
+            "es": "IPMI 1.5 (lan)"
+          }
+        }
       ]
     },
     {
-      "key": "poll_frequency",
-      "type": "number",
-      "label": { "en": "Refresh interval (s)", "fr": "Intervalle de rafraîchissement (s)" },
+      "key": "poll_interval",
+      "type": "select",
+      "label": {
+        "en": "Refresh interval",
+        "fr": "Intervalle de rafraîchissement",
+        "de": "Aktualisierungsintervall",
+        "es": "Intervalo de actualización"
+      },
       "description": {
-        "en": "How often sensors are polled, in seconds (one minute minimum).",
-        "fr": "Fréquence d'interrogation des capteurs, en secondes (une minute minimum)."
+        "en": "How often every BMC is read: power state, sensors, and the event log (SEL) when it changed.",
+        "fr": "Fréquence de lecture de chaque BMC : état, capteurs, et journal d'événements (SEL) s'il a changé.",
+        "de": "Wie oft jeder BMC gelesen wird: Betriebszustand, Sensoren und das Ereignisprotokoll (SEL), wenn es sich geändert hat.",
+        "es": "Con qué frecuencia se lee cada BMC: estado, sensores y el registro de eventos (SEL) si ha cambiado."
       },
       "required": false,
-      "default": 300,
-      "min": 60,
-      "max": 3600
+      "default": "60",
+      "options": [
+        {
+          "value": "30",
+          "label": {
+            "en": "30 seconds",
+            "fr": "30 secondes",
+            "de": "30 Sekunden",
+            "es": "30 segundos"
+          }
+        },
+        {
+          "value": "60",
+          "label": {
+            "en": "1 minute",
+            "fr": "1 minute",
+            "de": "1 Minute",
+            "es": "1 minuto"
+          }
+        },
+        {
+          "value": "120",
+          "label": {
+            "en": "2 minutes",
+            "fr": "2 minutes",
+            "de": "2 Minuten",
+            "es": "2 minutos"
+          }
+        },
+        {
+          "value": "300",
+          "label": {
+            "en": "5 minutes",
+            "fr": "5 minutes",
+            "de": "5 Minuten",
+            "es": "5 minutos"
+          }
+        }
+      ]
+    },
+    {
+      "key": "allow_power_control",
+      "type": "boolean",
+      "label": {
+        "en": "Allow power control",
+        "fr": "Autoriser le pilotage de l'alimentation",
+        "de": "Stromsteuerung erlauben",
+        "es": "Permitir el control de la alimentación"
+      },
+      "description": {
+        "en": "Power on and soft shutdown (ACPI, the system shuts down cleanly) from the widget and scenes; forced restart and power cycle from scenes only. Never a hard power off, never from a switch or a voice assistant. The account needs the Operator privilege.",
+        "fr": "Allumage et arrêt doux (ACPI, le système s'arrête proprement) par le widget et les scènes ; redémarrage forcé et cycle d'alimentation par les scènes seulement. Jamais de coupure franche, ni d'interrupteur ou d'assistant vocal. Compte avec le privilège Opérateur.",
+        "de": "Einschalten und sanftes Herunterfahren (ACPI, das System fährt sauber herunter) per Widget und Szenen; erzwungener Neustart und Aus-/Einschalten nur per Szene. Nie hartes Ausschalten, nie per Schalter oder Sprachassistent. Konto mit Berechtigung Operator.",
+        "es": "Encendido y apagado suave (ACPI, el sistema se apaga de forma ordenada) por el widget y las escenas; reinicio forzado y ciclo de alimentación solo por escenas. Nunca un corte brusco, ni por interruptor ni por asistente de voz. Cuenta con privilegio Operador."
+      },
+      "required": false,
+      "default": false
+    },
+    {
+      "key": "language",
+      "type": "select",
+      "label": {
+        "en": "Language of the names",
+        "fr": "Langue des noms",
+        "de": "Sprache der Namen",
+        "es": "Idioma de los nombres"
+      },
+      "description": {
+        "en": "Language of the feature names (set when a server is added), of the health texts, scene results and connection test.",
+        "fr": "Langue des noms des fonctionnalités (fixés à l'ajout d'un serveur), des textes de santé, des résultats de scène et du test de connexion.",
+        "de": "Sprache der Funktionsnamen (beim Hinzufügen eines Servers festgelegt), der Zustandstexte, der Szenen-Ergebnisse und des Verbindungstests.",
+        "es": "Idioma de los nombres de las funciones (fijados al añadir un servidor), de los textos de estado, de los resultados de escena y de la prueba de conexión."
+      },
+      "required": false,
+      "default": "fr",
+      "options": [
+        {
+          "value": "en",
+          "label": {
+            "en": "English",
+            "fr": "English",
+            "de": "English",
+            "es": "English"
+          }
+        },
+        {
+          "value": "fr",
+          "label": {
+            "en": "Français",
+            "fr": "Français",
+            "de": "Français",
+            "es": "Français"
+          }
+        },
+        {
+          "value": "de",
+          "label": {
+            "en": "Deutsch",
+            "fr": "Deutsch",
+            "de": "Deutsch",
+            "es": "Deutsch"
+          }
+        },
+        {
+          "value": "es",
+          "label": {
+            "en": "Español",
+            "fr": "Español",
+            "de": "Español",
+            "es": "Español"
+          }
+        }
+      ]
     }
   ],
   "actions": [
     {
-      "key": "test_weather",
-      "label": { "en": "Test the weather provider", "fr": "Tester le fournisseur météo" },
-      "timeout_seconds": 30
-    },
+      "key": "test_connection",
+      "label": {
+        "en": "Test the connection",
+        "fr": "Tester la connexion",
+        "de": "Verbindung testen",
+        "es": "Probar la conexión"
+      },
+      "description": {
+        "en": "Reads every configured BMC now and says what it found.",
+        "fr": "Lit maintenant chaque BMC configuré et dit ce qu'il a trouvé.",
+        "de": "Liest jetzt jeden konfigurierten BMC und sagt, was gefunden wurde.",
+        "es": "Lee ahora cada BMC configurado e indica lo que ha encontrado."
+      },
+      "timeout_seconds": 120
+    }
+  ],
+  "widgets": [
     {
-      "key": "identify",
-      "label": { "en": "Identify a device", "fr": "Identifier un appareil" },
-      "fields": [
+      "key": "servers",
+      "label": {
+        "en": "Servers (IPMI)",
+        "fr": "Serveurs (IPMI)",
+        "de": "Server (IPMI)",
+        "es": "Servidores (IPMI)"
+      },
+      "icon": "server",
+      "description": {
+        "en": "Power and health of every server, or the details and power buttons of one.",
+        "fr": "Marche et santé de chaque serveur, ou le détail et les boutons d'un seul.",
+        "de": "Betrieb und Zustand aller Server oder Details und Tasten eines Servers.",
+        "es": "Encendido y estado de cada servidor, o el detalle y los botones de uno."
+      },
+      "settings": [
         {
-          "key": "device",
+          "key": "server",
           "type": "select",
           "source": "devices",
-          "label": { "en": "Device", "fr": "Appareil" },
-          "required": true
+          "required": false,
+          "label": {
+            "en": "Server (optional)",
+            "fr": "Serveur (facultatif)",
+            "de": "Server (optional)",
+            "es": "Servidor (opcional)"
+          },
+          "description": {
+            "en": "Empty: one line per server. A server: its figures, and the power buttons when power control is allowed.",
+            "fr": "Vide : une ligne par serveur. Un serveur : ses mesures, et les boutons d'alimentation si le pilotage est autorisé.",
+            "de": "Leer: eine Zeile pro Server. Ein Server: seine Werte und die Stromtasten, wenn die Stromsteuerung erlaubt ist.",
+            "es": "Vacío: una línea por servidor. Un servidor: sus valores y los botones de alimentación si el control está permitido."
+          }
         }
-      ]
+      ],
+      "action_timeout_seconds": 60
     }
   ],
   "scene_triggers": [
     {
-      "key": "motion_detected",
-      "label": { "en": "Motion detected", "fr": "Mouvement détecté" },
+      "key": "sensor_out_of_range",
+      "label": {
+        "en": "Sensor out of range",
+        "fr": "Capteur hors seuil",
+        "de": "Sensor außerhalb des Grenzwerts",
+        "es": "Sensor fuera de umbral"
+      },
       "description": {
-        "en": "A demo motion sensor saw a person or an animal move.",
-        "fr": "Un détecteur de démonstration a vu bouger une personne ou un animal."
+        "en": "A sensor of a server crosses a threshold of its BMC (temperature, fan, voltage…) or reports a failure, or goes from Warning to Critical.",
+        "fr": "Un capteur d'un serveur franchit un seuil de son BMC (température, ventilateur, tension…) ou signale une panne, ou passe d'Avertissement à Critique.",
+        "de": "Ein Sensor eines Servers überschreitet einen Grenzwert seines BMC (Temperatur, Lüfter, Spannung …) oder meldet einen Ausfall, oder wechselt von Warnung zu Kritisch.",
+        "es": "Un sensor de un servidor cruza un umbral de su BMC (temperatura, ventilador, tensión…) o indica un fallo, o pasa de Advertencia a Crítico."
       },
       "fields": [
         {
-          "key": "device",
+          "key": "server",
           "type": "select",
           "source": "devices",
-          "label": { "en": "Sensor", "fr": "Détecteur" }
+          "label": {
+            "en": "Server",
+            "fr": "Serveur",
+            "de": "Server",
+            "es": "Servidor"
+          },
+          "description": {
+            "en": "The server device. Empty: every server.",
+            "fr": "L'appareil du serveur. Vide : tous les serveurs.",
+            "de": "Das Gerät des Servers. Leer: alle Server.",
+            "es": "El dispositivo del servidor. Vacío: todos los servidores."
+          }
         },
         {
-          "key": "target",
-          "type": "multi_select",
-          "label": { "en": "What moved", "fr": "Ce qui a bougé" },
+          "key": "level",
+          "type": "select",
+          "label": {
+            "en": "Severity",
+            "fr": "Gravité",
+            "de": "Schweregrad",
+            "es": "Gravedad"
+          },
+          "description": {
+            "en": "Empty: both.",
+            "fr": "Vide : les deux.",
+            "de": "Leer: beide.",
+            "es": "Vacío: ambas."
+          },
           "options": [
-            { "value": "person", "label": { "en": "Person", "fr": "Personne" } },
-            { "value": "animal", "label": { "en": "Animal", "fr": "Animal" } }
+            {
+              "value": "warning",
+              "label": {
+                "en": "Warning",
+                "fr": "Avertissement",
+                "de": "Warnung",
+                "es": "Advertencia"
+              }
+            },
+            {
+              "value": "critical",
+              "label": {
+                "en": "Critical",
+                "fr": "Critique",
+                "de": "Kritisch",
+                "es": "Crítico"
+              }
+            }
           ]
         }
       ],
       "variables": [
         {
-          "key": "target",
+          "key": "server_name",
           "type": "string",
-          "label": { "en": "What moved", "fr": "Ce qui a bougé" }
+          "label": {
+            "en": "Server",
+            "fr": "Serveur",
+            "de": "Server",
+            "es": "Servidor"
+          }
+        },
+        {
+          "key": "sensor",
+          "type": "string",
+          "label": {
+            "en": "Sensor",
+            "fr": "Capteur",
+            "de": "Sensor",
+            "es": "Sensor"
+          }
+        },
+        {
+          "key": "reading",
+          "type": "string",
+          "label": {
+            "en": "Reading",
+            "fr": "Valeur lue",
+            "de": "Messwert",
+            "es": "Lectura"
+          }
+        },
+        {
+          "key": "status",
+          "type": "string",
+          "label": {
+            "en": "Severity",
+            "fr": "Gravité",
+            "de": "Schweregrad",
+            "es": "Gravedad"
+          }
+        }
+      ]
+    },
+    {
+      "key": "new_sel_entry",
+      "label": {
+        "en": "New system event log entry",
+        "fr": "Nouvelle entrée du journal système (SEL)",
+        "de": "Neuer Eintrag im Systemereignisprotokoll",
+        "es": "Nueva entrada del registro de eventos"
+      },
+      "description": {
+        "en": "A new entry appears in the system event log (SEL) of a server: a threshold crossed, a power supply lost, a memory error, a chassis opened…",
+        "fr": "Une nouvelle entrée apparaît dans le journal d'événements système (SEL) d'un serveur : seuil franchi, alimentation perdue, erreur mémoire, châssis ouvert…",
+        "de": "Ein neuer Eintrag erscheint im Systemereignisprotokoll (SEL) eines Servers: Grenzwert überschritten, Netzteil ausgefallen, Speicherfehler, Gehäuse geöffnet …",
+        "es": "Aparece una nueva entrada en el registro de eventos del sistema (SEL) de un servidor: umbral superado, fuente perdida, error de memoria, chasis abierto…"
+      },
+      "fields": [
+        {
+          "key": "server",
+          "type": "select",
+          "source": "devices",
+          "label": {
+            "en": "Server",
+            "fr": "Serveur",
+            "de": "Server",
+            "es": "Servidor"
+          },
+          "description": {
+            "en": "The server device. Empty: every server.",
+            "fr": "L'appareil du serveur. Vide : tous les serveurs.",
+            "de": "Das Gerät des Servers. Leer: alle Server.",
+            "es": "El dispositivo del servidor. Vacío: todos los servidores."
+          }
+        }
+      ],
+      "variables": [
+        {
+          "key": "server_name",
+          "type": "string",
+          "label": {
+            "en": "Server",
+            "fr": "Serveur",
+            "de": "Server",
+            "es": "Servidor"
+          }
+        },
+        {
+          "key": "message",
+          "type": "string",
+          "label": {
+            "en": "Message",
+            "fr": "Message",
+            "de": "Meldung",
+            "es": "Mensaje"
+          }
+        },
+        {
+          "key": "created",
+          "type": "string",
+          "label": {
+            "en": "Date",
+            "fr": "Date",
+            "de": "Datum",
+            "es": "Fecha"
+          }
+        }
+      ]
+    },
+    {
+      "key": "server_powered_on",
+      "label": {
+        "en": "Server powered on",
+        "fr": "Serveur allumé",
+        "de": "Server eingeschaltet",
+        "es": "Servidor encendido"
+      },
+      "description": {
+        "en": "A server that was off is on, whatever turned it on (button, BMC, schedule).",
+        "fr": "Un serveur éteint s'allume, quelle qu'en soit la cause (bouton, BMC, programmation).",
+        "de": "Ein ausgeschalteter Server ist an, egal wodurch (Taste, BMC, Zeitplan).",
+        "es": "Un servidor apagado se enciende, sea cual sea la causa (botón, BMC, programación)."
+      },
+      "fields": [
+        {
+          "key": "server",
+          "type": "select",
+          "source": "devices",
+          "label": {
+            "en": "Server",
+            "fr": "Serveur",
+            "de": "Server",
+            "es": "Servidor"
+          },
+          "description": {
+            "en": "The server device. Empty: every server.",
+            "fr": "L'appareil du serveur. Vide : tous les serveurs.",
+            "de": "Das Gerät des Servers. Leer: alle Server.",
+            "es": "El dispositivo del servidor. Vacío: todos los servidores."
+          }
+        }
+      ],
+      "variables": [
+        {
+          "key": "server_name",
+          "type": "string",
+          "label": {
+            "en": "Server",
+            "fr": "Serveur",
+            "de": "Server",
+            "es": "Servidor"
+          }
+        }
+      ]
+    },
+    {
+      "key": "server_powered_off",
+      "label": {
+        "en": "Server powered off",
+        "fr": "Serveur éteint",
+        "de": "Server ausgeschaltet",
+        "es": "Servidor apagado"
+      },
+      "description": {
+        "en": "A server that was on is off: a shutdown, a power cut it survived on standby, a crash.",
+        "fr": "Un serveur allumé s'éteint : un arrêt, une coupure, un plantage.",
+        "de": "Ein eingeschalteter Server ist aus: ein Herunterfahren, ein Stromausfall, ein Absturz.",
+        "es": "Un servidor encendido se apaga: un apagado, un corte, un fallo."
+      },
+      "fields": [
+        {
+          "key": "server",
+          "type": "select",
+          "source": "devices",
+          "label": {
+            "en": "Server",
+            "fr": "Serveur",
+            "de": "Server",
+            "es": "Servidor"
+          },
+          "description": {
+            "en": "The server device. Empty: every server.",
+            "fr": "L'appareil du serveur. Vide : tous les serveurs.",
+            "de": "Das Gerät des Servers. Leer: alle Server.",
+            "es": "El dispositivo del servidor. Vacío: todos los servidores."
+          }
+        }
+      ],
+      "variables": [
+        {
+          "key": "server_name",
+          "type": "string",
+          "label": {
+            "en": "Server",
+            "fr": "Serveur",
+            "de": "Server",
+            "es": "Servidor"
+          }
         }
       ]
     }
   ],
   "scene_actions": [
     {
-      "key": "identify_device",
-      "label": { "en": "Identify a device", "fr": "Identifier un appareil" },
-      "description": {
-        "en": "Make a device signal itself (the demo light blinks).",
-        "fr": "Fait se signaler un appareil (la lampe de démonstration clignote)."
+      "key": "get_server_status",
+      "label": {
+        "en": "State of a server",
+        "fr": "État d'un serveur",
+        "de": "Zustand eines Servers",
+        "es": "Estado de un servidor"
       },
-      "timeout_seconds": 15,
+      "description": {
+        "en": "Reads a server for the next actions: power, health, power draw, temperatures, fans, sensors out of range, and a ready-made summary.",
+        "fr": "Lit un serveur pour les actions suivantes : marche, santé, consommation, températures, ventilateurs, capteurs hors seuil, et un résumé prêt à envoyer.",
+        "de": "Liest einen Server für die nächsten Aktionen: Betrieb, Zustand, Leistung, Temperaturen, Lüfter, Sensoren außerhalb der Grenzwerte und eine fertige Zusammenfassung.",
+        "es": "Lee un servidor para las acciones siguientes: encendido, estado, consumo, temperaturas, ventiladores, sensores fuera de umbral y un resumen listo para enviar."
+      },
+      "timeout_seconds": 60,
       "fields": [
         {
-          "key": "device",
+          "key": "server",
           "type": "select",
           "source": "devices",
-          "label": { "en": "Device", "fr": "Appareil" },
-          "required": true
+          "required": true,
+          "label": {
+            "en": "Server",
+            "fr": "Serveur",
+            "de": "Server",
+            "es": "Servidor"
+          }
         }
       ],
       "outputs": [
         {
-          "key": "signalled",
+          "key": "name",
+          "type": "string",
+          "label": {
+            "en": "Server name",
+            "fr": "Nom du serveur",
+            "de": "Servername",
+            "es": "Nombre del servidor"
+          }
+        },
+        {
+          "key": "online",
           "type": "boolean",
-          "label": { "en": "Device signalled", "fr": "Appareil signalé" }
+          "label": {
+            "en": "BMC answers",
+            "fr": "Le BMC répond",
+            "de": "BMC antwortet",
+            "es": "El BMC responde"
+          }
+        },
+        {
+          "key": "summary",
+          "type": "string",
+          "label": {
+            "en": "Summary",
+            "fr": "Résumé",
+            "de": "Zusammenfassung",
+            "es": "Resumen"
+          }
+        },
+        {
+          "key": "power_on",
+          "type": "boolean",
+          "label": {
+            "en": "Powered on",
+            "fr": "Allumé",
+            "de": "Eingeschaltet",
+            "es": "Encendido"
+          }
+        },
+        {
+          "key": "health",
+          "type": "string",
+          "label": {
+            "en": "Health",
+            "fr": "Santé",
+            "de": "Zustand",
+            "es": "Estado"
+          }
+        },
+        {
+          "key": "power_watts",
+          "type": "number",
+          "label": {
+            "en": "Power draw (W)",
+            "fr": "Consommation (W)",
+            "de": "Leistungsaufnahme (W)",
+            "es": "Consumo (W)"
+          }
+        },
+        {
+          "key": "intake_temperature",
+          "type": "number",
+          "label": {
+            "en": "Intake temperature (°C)",
+            "fr": "Température d'entrée (°C)",
+            "de": "Zulufttemperatur (°C)",
+            "es": "Temperatura de entrada (°C)"
+          }
+        },
+        {
+          "key": "cpu_temperature",
+          "type": "number",
+          "label": {
+            "en": "Processor temperature (°C)",
+            "fr": "Température processeur (°C)",
+            "de": "Prozessortemperatur (°C)",
+            "es": "Temperatura del procesador (°C)"
+          }
+        },
+        {
+          "key": "max_temperature",
+          "type": "number",
+          "label": {
+            "en": "Highest temperature (°C)",
+            "fr": "Température maximale (°C)",
+            "de": "Höchste Temperatur (°C)",
+            "es": "Temperatura máxima (°C)"
+          }
+        },
+        {
+          "key": "fan_speed",
+          "type": "number",
+          "label": {
+            "en": "Fan speed (rpm or %)",
+            "fr": "Vitesse des ventilateurs (tr/min ou %)",
+            "de": "Lüfterdrehzahl (U/min oder %)",
+            "es": "Velocidad de ventiladores (rpm o %)"
+          }
+        },
+        {
+          "key": "sensors_out_of_range",
+          "type": "number",
+          "label": {
+            "en": "Sensors out of range",
+            "fr": "Capteurs hors seuil",
+            "de": "Sensoren außerhalb der Grenzwerte",
+            "es": "Sensores fuera de umbral"
+          }
+        },
+        {
+          "key": "alerts",
+          "type": "string",
+          "label": {
+            "en": "Sensors out of range (list)",
+            "fr": "Capteurs hors seuil (liste)",
+            "de": "Sensoren außerhalb der Grenzwerte (Liste)",
+            "es": "Sensores fuera de umbral (lista)"
+          }
         }
       ]
-    }
-  ],
-  "widgets": [
+    },
     {
-      "key": "demo_status",
-      "label": { "en": "Demo status", "fr": "État de la démo" },
-      "description": {
-        "en": "Live temperature and plug power, plug connection and observed location.",
-        "fr": "Température et puissance en direct, connexion de la prise, position observée."
+      "key": "power_command",
+      "label": {
+        "en": "Power command",
+        "fr": "Commande d'alimentation",
+        "de": "Strombefehl",
+        "es": "Orden de alimentación"
       },
-      "icon": "activity",
-      "action_timeout_seconds": 15
+      "description": {
+        "en": "Powers a server on, shuts it down softly (ACPI), forces a restart or a power cycle. Needs \"Allow power control\". Never a hard power off.",
+        "fr": "Allume un serveur, l'arrête en douceur (ACPI), force un redémarrage ou un cycle d'alimentation. Demande « Autoriser le pilotage de l'alimentation ». Jamais de coupure franche.",
+        "de": "Schaltet einen Server ein, fährt ihn sanft herunter (ACPI), erzwingt einen Neustart oder ein Aus- und Einschalten. Braucht „Stromsteuerung erlauben“. Nie ein hartes Ausschalten.",
+        "es": "Enciende un servidor, lo apaga de forma suave (ACPI), fuerza un reinicio o un ciclo de alimentación. Necesita «Permitir el control de la alimentación». Nunca un corte brusco."
+      },
+      "timeout_seconds": 60,
+      "fields": [
+        {
+          "key": "server",
+          "type": "select",
+          "source": "devices",
+          "required": true,
+          "label": {
+            "en": "Server",
+            "fr": "Serveur",
+            "de": "Server",
+            "es": "Servidor"
+          }
+        },
+        {
+          "key": "command",
+          "type": "select",
+          "required": true,
+          "label": {
+            "en": "Command",
+            "fr": "Commande",
+            "de": "Befehl",
+            "es": "Orden"
+          },
+          "options": [
+            {
+              "value": "on",
+              "label": {
+                "en": "Power on",
+                "fr": "Allumer",
+                "de": "Einschalten",
+                "es": "Encender"
+              }
+            },
+            {
+              "value": "shutdown",
+              "label": {
+                "en": "Soft shutdown (ACPI)",
+                "fr": "Arrêt doux (ACPI)",
+                "de": "Sanft herunterfahren (ACPI)",
+                "es": "Apagado suave (ACPI)"
+              }
+            },
+            {
+              "value": "force_restart",
+              "label": {
+                "en": "Forced restart (reset)",
+                "fr": "Redémarrage forcé (reset)",
+                "de": "Erzwungener Neustart (Reset)",
+                "es": "Reinicio forzado (reset)"
+              }
+            },
+            {
+              "value": "power_cycle",
+              "label": {
+                "en": "Power cycle (off, then on)",
+                "fr": "Cycle d'alimentation (coupure puis rallumage)",
+                "de": "Aus- und Einschalten",
+                "es": "Ciclo de alimentación (apagar y encender)"
+              }
+            }
+          ]
+        }
+      ],
+      "outputs": [
+        {
+          "key": "ipmi_action",
+          "type": "string",
+          "label": {
+            "en": "IPMI action sent",
+            "fr": "Action IPMI envoyée",
+            "de": "Gesendete IPMI-Aktion",
+            "es": "Acción IPMI enviada"
+          }
+        }
+      ]
     }
   ]
 }

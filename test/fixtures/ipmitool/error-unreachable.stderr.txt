@@ -1,0 +1,4 @@
+Loading IANA PEN Registry...
+Get Auth Capabilities error
+Error issuing Get Channel Authentication Capabilities request
+Error: Unable to establish IPMI v2 / RMCP+ session

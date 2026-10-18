@@ -1,0 +1,9 @@
+SEL Information
+Version          : 1.5 (v1.5, v2 compliant)
+Entries          : 4
+Free Space       : 15296 bytes
+Percent Used     : 4%
+Last Add Time    : 10/18/26 06:03:11 UTC
+Last Del Time    : 10/12/26 08:14:02 UTC
+Overflow         : false
+Supported Cmds   : 'Reserve' 'Get Alloc Info'

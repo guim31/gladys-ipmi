@@ -1,0 +1,10 @@
+Device ID                 : 32
+Device Revision           : 1
+Firmware Revision         : 2.65
+IPMI Version              : 2.0
+Manufacturer ID           : 674
+Manufacturer Name         : DELL Inc
+Product ID                : 256 (0x0100)
+Product Name              : Unknown (0x100)
+Device Available          : yes
+Provides Device SDRs      : yes

@@ -1,33 +1,77 @@
+// -----------------------------------------------------------------------------
+// The configuration: addresses typed by the user (and the ones refused, since
+// the host goes to the ipmitool command line), defaults, slots.
+// -----------------------------------------------------------------------------
+
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { normalizeConfig, DEFAULT_CONFIG } from '../src/config.js';
+import { DEFAULT_CONFIG, addressOf, normalizeConfig, parseBmcHost } from '../src/config.js';
 
-test('normalizeConfig returns the defaults when called with no argument', () => {
-  assert.deepEqual(normalizeConfig(), DEFAULT_CONFIG);
+test('addresses: IPv4, host names, ports, IPv6, a pasted URL', () => {
+  assert.deepEqual(parseBmcHost(' 192.0.2.10 '), { host: '192.0.2.10', port: 623 });
+  assert.deepEqual(parseBmcHost('idrac.lan'), { host: 'idrac.lan', port: 623 });
+  assert.deepEqual(parseBmcHost('idrac.lan:6230'), { host: 'idrac.lan', port: 6230 });
+  assert.deepEqual(parseBmcHost('2001:db8::1'), { host: '2001:db8::1', port: 623 });
+  assert.deepEqual(parseBmcHost('[2001:db8::1]:6230'), { host: '2001:db8::1', port: 6230 });
+  // The address of the web page: its host, IPMI keeps its own port.
+  assert.deepEqual(parseBmcHost('https://192.0.2.10:443/restgui/start.html'), {
+    host: '192.0.2.10',
+    port: 623,
+  });
+  assert.equal(addressOf({ host: 'idrac.lan', port: 623 }), 'idrac.lan');
+  assert.equal(addressOf({ host: '2001:db8::1', port: 6230 }), '[2001:db8::1]:6230');
 });
 
-test('normalizeConfig keeps user values over the defaults', () => {
-  const config = normalizeConfig({ latitude: 45.5, longitude: -73.6, unit: 'fahrenheit' });
-  assert.equal(config.latitude, 45.5);
-  assert.equal(config.longitude, -73.6);
-  assert.equal(config.unit, 'fahrenheit');
+test('addresses refused: options, spaces, credentials, bad ports', () => {
+  for (const bad of [
+    '',
+    '-H',
+    '--help',
+    'idrac lan',
+    'idrac.lan;reboot',
+    'https://root:calvin@192.0.2.10',
+    'idrac.lan:0',
+    'idrac.lan:70000',
+    'ftp://idrac.lan',
+    '[::1',
+    42,
+  ]) {
+    assert.equal(parseBmcHost(bad), null, String(bad));
+  }
 });
 
-test('normalizeConfig coerces numeric strings coming from a form', () => {
-  const config = normalizeConfig({ latitude: '48.8', longitude: '2.3', poll_frequency: '600' });
-  assert.equal(config.latitude, 48.8);
-  assert.equal(config.longitude, 2.3);
-  assert.equal(config.poll_frequency, 600);
-  assert.equal(typeof config.poll_frequency, 'number');
-});
+test('normalization: slots, invalid ones, defaults', () => {
+  const config = normalizeConfig({
+    bmc_1_host: '192.0.2.10',
+    bmc_1_username: ' admin ',
+    bmc_1_password: 'secret\n',
+    bmc_2_host: 'not valid',
+    bmc_3_host: '192.0.2.12',
+    bmc_3_username: 'bad\u0000name',
+    interface: 'lan',
+    poll_interval: '120',
+    allow_power_control: 'true',
+  });
+  assert.deepEqual(config.bmcs, [
+    {
+      slot: 1,
+      host: '192.0.2.10',
+      port: 623,
+      username: 'admin',
+      password: 'secret',
+      name: null,
+    },
+  ]);
+  assert.deepEqual(config.invalidSlots, [2, 3]);
+  assert.equal(config.iface, 'lan');
+  assert.equal(config.pollIntervalMs, 120_000);
+  assert.equal(config.allowPowerControl, true);
+  assert.equal(config.language, 'fr');
 
-test('normalizeConfig falls back to the default for a missing numeric field', () => {
-  const config = normalizeConfig({ unit: 'celsius' });
-  assert.equal(config.poll_frequency, DEFAULT_CONFIG.poll_frequency);
-});
-
-test('GLADYS_PREFER_LOCAL defaults to true and only an explicit false disables it', () => {
-  assert.equal(normalizeConfig().GLADYS_PREFER_LOCAL, true);
-  assert.equal(normalizeConfig({ GLADYS_PREFER_LOCAL: true }).GLADYS_PREFER_LOCAL, true);
-  assert.equal(normalizeConfig({ GLADYS_PREFER_LOCAL: false }).GLADYS_PREFER_LOCAL, false);
+  const defaults = normalizeConfig({ interface: 'ssh', poll_interval: '5', language: 'it' });
+  assert.equal(defaults.iface, DEFAULT_CONFIG.interface);
+  assert.equal(defaults.pollIntervalMs, 60_000);
+  assert.equal(defaults.allowPowerControl, false);
+  assert.equal(defaults.language, 'fr');
+  assert.deepEqual(normalizeConfig(null).bmcs, []);
 });

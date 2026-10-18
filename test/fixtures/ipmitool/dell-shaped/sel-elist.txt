@@ -1,0 +1,4 @@
+   1 | 10/12/26 | 08:14:02 UTC | Event Logging Disabled SEL | Log area reset/cleared | Asserted
+   2 | 10/17/26 | 22:41:57 UTC | Power Supply Status | Power Supply AC lost | Asserted
+   3 | 10/17/26 | 22:41:58 UTC | Power Supply PS Redundancy | Redundancy Lost | Asserted
+   4 | 10/18/26 | 06:03:11 UTC | Temperature Inlet Temp | Upper Non-critical going high | Asserted | Reading 43 > Threshold 42 degrees C

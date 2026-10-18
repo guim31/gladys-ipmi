@@ -1,0 +1,9 @@
+SEL Information
+Version          : 1.5 (v1.5, v2 compliant)
+Entries          : 14
+Free Space       : 15776 bytes 
+Percent Used     : 1%
+Last Add Time    : 10/18/26 07:55:43 UTC
+Last Del Time    : Not Available
+Overflow         : false
+Supported Cmds   : 'Delete' 'Reserve' 
