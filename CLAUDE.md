@@ -269,8 +269,10 @@ long, et sur un « Sie »/« Ihr… » de politesse en allemand. Le store exige 
 - **SEL** : `sel info` à chaque lecture (au plus une fois par minute), `sel elist last 20` seulement
   si le nombre d'entrées ou la date du dernier ajout changent. Clé `id|date|heure` (un SEL vidé
   renumérote). Première lecture enregistrée sans annonce.
-- **Commandes** : jamais `chassis power off`. Interrupteur = `on` / `soft` ; `reset` et `cycle`
-  seulement par l'action de scène, refusés serveur éteint. L'état est relu (`chassis status`)
+- **Commandes** : jamais `chassis power off`. La fonctionnalité Alimentation est **toujours en
+  lecture seule** (consigne de Guilhem, 18/10/2026 : un assistant vocal ne doit jamais éteindre un
+  serveur) ; `onSetValue` refuse. Widget = `on` / `soft` ; `reset` et `cycle` seulement par l'action
+  de scène, refusés serveur éteint. L'état est relu (`chassis status`)
   juste avant chaque commande.
 - **Testé contre `ipmi_sim`** (OpenIPMI 2.0.36, paquet Alpine `openipmi-lanserv`). Pièges du
   simulateur : en 2.0.36, `sensor_set_value` ne rend pas un capteur lisible (`data_ready` reste à

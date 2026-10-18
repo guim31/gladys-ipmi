@@ -84,7 +84,7 @@ One device per BMC. Only the features the BMC reports are proposed:
 
 | Feature               | Value                                                               |
 | --------------------- | ------------------------------------------------------------------- |
-| Power                 | On or off. A switch when power control is allowed                   |
+| Power                 | On or off. Always read-only (see Power control)                     |
 | Health                | OK, Warning or Critical: chassis faults and sensors out of range    |
 | Power draw            | Watts drawn by the server (DCMI power reading, or a Watts sensor)   |
 | Intake temperature    | Air entering the server, in °C                                      |
@@ -155,14 +155,17 @@ an entry that was already there.
 
 ## Power control
 
-Off by default. Once **Allow power control** is ticked, click **Update** on
-the server in the Discover tab: the **Power** feature becomes a switch.
+Off by default. Once **Allow power control** is ticked, the widget shows the
+**Shut down** button (server on) or **Power on** (server off), each asking
+for a confirmation, and the **Power command** scene action is accepted.
 
-- Switching on sends `chassis power on`.
-- Switching off sends a **soft shutdown** (`chassis power soft`: the BMC
+**The Power feature stays read-only**, even with power control allowed: a
+voice assistant ("turn everything off") must never shut a server down.
+
+- **Power on** sends `chassis power on`.
+- **Shut down** sends a **soft shutdown** (`chassis power soft`: the BMC
   presses the power button briefly, the operating system shuts down
-  cleanly, provided it handles ACPI). **Never a hard power off**: a switch
-  flipped by mistake, a voice assistant or a scene must not cut a server.
+  cleanly, provided it handles ACPI). **Never a hard power off**.
 - The forced restart (`chassis power reset`) and the power cycle
   (`chassis power cycle`, off then on) are only in the **Power command**
   scene action, chosen explicitly, and refused on a server that is off.

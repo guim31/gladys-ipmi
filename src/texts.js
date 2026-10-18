@@ -109,6 +109,12 @@ export const ACTION_TEXT = {
     de: 'Der BMC hat den Befehl abgelehnt, sieh in den Protokollen der Integration nach.',
     es: 'El BMC ha rechazado el comando, consulte los registros de la integración.',
   },
+  notFromSwitch: {
+    en: 'Power control goes through the widget buttons or the scene action, never a switch.',
+    fr: "Le pilotage passe par les boutons du widget ou l'action de scène, jamais par un interrupteur.",
+    de: 'Die Stromsteuerung läuft über die Widget-Tasten oder die Szenen-Aktion, nie über einen Schalter.',
+    es: 'El control de la alimentación se hace con los botones del widget o la acción de escena, nunca con un interruptor.',
+  },
   unknownCommand: {
     en: 'Unknown command.',
     fr: 'Commande inconnue.',

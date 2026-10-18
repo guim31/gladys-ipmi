@@ -90,7 +90,7 @@ vorgeschlagen:
 
 | Funktion                          | Wert                                                             |
 | --------------------------------- | ---------------------------------------------------------------- |
-| Stromversorgung                   | An oder aus. Ein Schalter, wenn die Stromsteuerung erlaubt ist   |
+| Stromversorgung                   | An oder aus. Immer schreibgeschützt (siehe Stromsteuerung)       |
 | Zustand                           | OK, Warnung oder Kritisch: Gehäusefehler und Sensoren            |
 | Leistungsaufnahme                 | Aufgenommene Watt (DCMI-Messung oder ein Watt-Sensor)            |
 | Zulufttemperatur                  | Die Luft, die in den Server strömt, in °C                        |
@@ -166,16 +166,20 @@ Sensor oder Eintrag, der schon da war, wird nichts gemeldet.
 
 ## Stromsteuerung
 
-Standardmäßig aus. Sobald **Stromsteuerung erlauben** aktiviert ist,
-klicke im Tab Entdecken beim Server auf **Aktualisieren**: Die Funktion
-**Stromversorgung** wird zum Schalter.
+Standardmäßig aus. Sobald **Stromsteuerung erlauben** aktiviert ist, zeigt
+das Widget die Taste **Herunterfahren** (Server an) oder **Einschalten**
+(Server aus), jeweils mit Bestätigung, und die Szenen-Aktion
+**Strombefehl** wird angenommen.
 
-- Einschalten sendet `chassis power on`.
-- Ausschalten sendet ein **sanftes Herunterfahren** (`chassis power soft`:
-  Der BMC drückt kurz die Einschalttaste, das Betriebssystem fährt sauber
-  herunter, sofern es ACPI unterstützt). **Nie ein hartes Ausschalten**: Ein
-  versehentlich umgelegter Schalter, ein Sprachassistent oder eine Szene
-  dürfen keinen Server abschalten.
+**Die Funktion Stromversorgung bleibt schreibgeschützt**, auch mit erlaubter
+Stromsteuerung: Ein Sprachassistent („alles aus“) darf nie einen Server
+herunterfahren.
+
+- **Einschalten** sendet `chassis power on`.
+- **Herunterfahren** sendet ein **sanftes Herunterfahren**
+  (`chassis power soft`: Der BMC drückt kurz die Einschalttaste, das
+  Betriebssystem fährt sauber herunter, sofern es ACPI unterstützt). **Nie
+  ein hartes Ausschalten**.
 - Der erzwungene Neustart (`chassis power reset`) und das Aus- und
   Einschalten (`chassis power cycle`) gibt es nur in der Szenen-Aktion
   **Strombefehl**, ausdrücklich gewählt, und nicht bei einem

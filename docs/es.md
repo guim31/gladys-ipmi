@@ -92,7 +92,7 @@ proporciona:
 
 | Función                               | Valor                                                             |
 | ------------------------------------- | ----------------------------------------------------------------- |
-| Alimentación                          | Encendido o apagado. Un interruptor si el control está permitido  |
+| Alimentación                          | Encendido o apagado. Siempre en solo lectura (vea Control)        |
 | Estado                                | OK, Advertencia o Crítico: fallos del chasis y sensores           |
 | Consumo                               | Vatios consumidos (medición DCMI, o un sensor en vatios)          |
 | Temperatura de entrada                | El aire que entra en el servidor, en °C                           |
@@ -167,14 +167,18 @@ una entrada que ya estaba ahí.
 ## Control de la alimentación
 
 Desactivado por defecto. Una vez marcado **Permitir el control de la
-alimentación**, pulse **Actualizar** en el servidor en la pestaña
-Descubrir: la función **Alimentación** se convierte en un interruptor.
+alimentación**, el widget muestra el botón **Apagar** (servidor encendido)
+o **Encender** (servidor apagado), cada uno con una confirmación, y se
+acepta la acción de escena **Orden de alimentación**.
 
-- Encender envía `chassis power on`.
-- Apagar envía un **apagado suave** (`chassis power soft`: el BMC pulsa
+**La función Alimentación sigue en solo lectura**, incluso con el control
+permitido: un asistente de voz («apaga todo») nunca debe apagar un
+servidor.
+
+- **Encender** envía `chassis power on`.
+- **Apagar** envía un **apagado suave** (`chassis power soft`: el BMC pulsa
   brevemente el botón, el sistema operativo se apaga de forma ordenada si
-  gestiona ACPI). **Nunca un corte brusco**: un interruptor pulsado por
-  error, un asistente de voz o una escena no deben cortar un servidor.
+  gestiona ACPI). **Nunca un corte brusco**.
 - El reinicio forzado (`chassis power reset`) y el ciclo de alimentación
   (`chassis power cycle`, apagar y encender) solo están en la acción de
   escena **Orden de alimentación**, elegidos de forma explícita, y se

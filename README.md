@@ -20,9 +20,10 @@ real iDRAC, iLO or Supermicro.
   (W, DCMI or a Watts sensor), intake, processor and highest temperatures,
   mean fan speed (rpm or %), number of sensors out of range. Only what the
   BMC reports.
-- **Power control, off by default**: once allowed, the power feature becomes
-  a switch (on, **soft** shutdown through ACPI — never a hard power off), and
-  a scene action can also force a restart or a power cycle.
+- **Power control, off by default**: once allowed, the widget buttons and a
+  scene action power on and shut down softly (ACPI — never a hard power off);
+  the scene action can also force a restart or a power cycle. The power
+  feature itself stays read-only: no voice assistant can shut a server down.
 - **Dashboard widget** "Servers (IPMI)": one line per server, or one server
   in detail with its sensors out of range and its power button (confirmed).
 - **Scene triggers**: sensor out of range (filter by severity), new system

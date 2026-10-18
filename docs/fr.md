@@ -91,7 +91,7 @@ proposées :
 
 | Fonctionnalité                           | Valeur                                                                 |
 | ---------------------------------------- | ---------------------------------------------------------------------- |
-| Alimentation                             | Allumé ou éteint. Un interrupteur si le pilotage est autorisé          |
+| Alimentation                             | Allumé ou éteint. Toujours en lecture seule (voir Pilotage)            |
 | Santé                                    | OK, Avertissement ou Critique : défauts du châssis et capteurs         |
 | Consommation                             | Watts consommés (mesure DCMI, ou un capteur en watts)                  |
 | Température d'entrée                     | L'air qui entre dans le serveur, en °C                                 |
@@ -166,15 +166,18 @@ capteur ou une entrée déjà là.
 ## Pilotage de l'alimentation
 
 Désactivé par défaut. Une fois **Autoriser le pilotage de l'alimentation**
-coché, cliquez sur **Mettre à jour** pour le serveur dans l'onglet
-Découverte : la fonctionnalité **Alimentation** devient un interrupteur.
+coché, le widget montre le bouton **Éteindre** (serveur allumé) ou
+**Allumer** (serveur éteint), chacun avec une confirmation, et l'action de
+scène **Commande d'alimentation** est acceptée.
 
-- Allumer envoie `chassis power on`.
-- Éteindre envoie un **arrêt doux** (`chassis power soft` : le BMC appuie
-  brièvement sur le bouton, le système d'exploitation s'arrête proprement,
-  s'il gère l'ACPI). **Jamais de coupure franche** : un interrupteur basculé
-  par erreur, un assistant vocal ou une scène ne doivent pas couper un
-  serveur.
+**La fonctionnalité Alimentation reste en lecture seule**, même pilotage
+autorisé : un assistant vocal (« éteins tout ») ne doit jamais arrêter un
+serveur.
+
+- **Allumer** envoie `chassis power on`.
+- **Éteindre** envoie un **arrêt doux** (`chassis power soft` : le BMC
+  appuie brièvement sur le bouton, le système d'exploitation s'arrête
+  proprement, s'il gère l'ACPI). **Jamais de coupure franche**.
 - Le redémarrage forcé (`chassis power reset`) et le cycle d'alimentation
   (`chassis power cycle`, coupure puis rallumage) ne sont que dans l'action
   de scène **Commande d'alimentation**, choisis explicitement, et refusés

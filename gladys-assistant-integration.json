@@ -362,10 +362,10 @@
         "es": "Permitir el control de la alimentación"
       },
       "description": {
-        "en": "Power on and soft shutdown (ACPI, the system shuts down cleanly) from Gladys; forced restart and power cycle from scenes only. Never a hard power off. The account needs the Operator privilege. Then click Update on the server in the Discover tab.",
-        "fr": "Allumage et arrêt doux (ACPI, le système s'arrête proprement) depuis Gladys ; redémarrage forcé et cycle d'alimentation par les scènes seulement. Jamais de coupure franche. Compte avec le privilège Opérateur. Puis Mettre à jour le serveur dans l'onglet Découverte.",
-        "de": "Einschalten und sanftes Herunterfahren (ACPI, das System fährt sauber herunter) aus Gladys; erzwungener Neustart und Aus-/Einschalten nur per Szene. Nie hartes Ausschalten. Konto mit Berechtigung Operator. Danach den Server im Tab „Entdecken“ aktualisieren.",
-        "es": "Encendido y apagado suave (ACPI, el sistema se apaga de forma ordenada) desde Gladys; reinicio forzado y ciclo de alimentación solo por escenas. Nunca un corte brusco. Cuenta con privilegio Operador. Después actualice el servidor en la pestaña Descubrir."
+        "en": "Power on and soft shutdown (ACPI, the system shuts down cleanly) from the widget and scenes; forced restart and power cycle from scenes only. Never a hard power off, never from a switch or a voice assistant. The account needs the Operator privilege.",
+        "fr": "Allumage et arrêt doux (ACPI, le système s'arrête proprement) par le widget et les scènes ; redémarrage forcé et cycle d'alimentation par les scènes seulement. Jamais de coupure franche, ni d'interrupteur ou d'assistant vocal. Compte avec le privilège Opérateur.",
+        "de": "Einschalten und sanftes Herunterfahren (ACPI, das System fährt sauber herunter) per Widget und Szenen; erzwungener Neustart und Aus-/Einschalten nur per Szene. Nie hartes Ausschalten, nie per Schalter oder Sprachassistent. Konto mit Berechtigung Operator.",
+        "es": "Encendido y apagado suave (ACPI, el sistema se apaga de forma ordenada) por el widget y las escenas; reinicio forzado y ciclo de alimentación solo por escenas. Nunca un corte brusco, ni por interruptor ni por asistente de voz. Cuenta con privilegio Operador."
       },
       "required": false,
       "default": false

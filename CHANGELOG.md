@@ -17,9 +17,10 @@ the notes of the version's GitHub Release.
   thresholds), power draw (DCMI or a Watts sensor), intake, processor and
   highest temperatures, mean fan speed, sensors out of range. Up to three BMCs
   (Dell iDRAC, HP iLO, Supermicro, ASRock Rack…).
-- Power control, off by default: the power switch powers on and sends a soft
-  shutdown (ACPI), never a hard power off; forced restart and power cycle from
-  the scene action only.
+- Power control, off by default, from the widget buttons and the scene action
+  only: power on and soft shutdown (ACPI), never a hard power off; forced
+  restart and power cycle from the scene action. The power feature stays
+  read-only, out of reach of voice assistants.
 - Dashboard widget "Servers (IPMI)": one row per server, or one server in
   detail with its tiles, the sensors out of range and its power button.
 - Scene triggers: sensor out of range (with a severity filter), new system

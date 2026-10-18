@@ -7,8 +7,10 @@
 //
 // Features (only the ones the BMC reports), with the names and keys of
 // guim31/gladys-redfish where they mean the same:
-//   - power: switch/binary, read-only unless "Allow power control" is ticked.
-//     Off sends a soft shutdown (ACPI), never a hard power cut;
+//   - power: switch/binary, always read-only. Gladys hands writable switches
+//     to the voice assistants: an "everything off" must never shut a server
+//     down. Power control goes through the widget buttons (confirmed) and
+//     the scene action only;
 //   - health: text/text (OK, Warning, Critical): chassis faults and sensors
 //     out of their thresholds;
 //   - power draw (W), intake, highest processor and highest temperature;
@@ -147,7 +149,6 @@ const BLUEPRINT = [
   {
     key: K.POWER,
     definition: { category: CATEGORY.SWITCH, type: TYPE.SWITCH.BINARY, min: 0, max: 1 },
-    command: true,
     digits: 0,
     when: (s) => s.on !== null,
     value: (s) => (s.on === null ? null : s.on ? 1 : 0),
@@ -239,21 +240,19 @@ export const featureKeys = (server) =>
  * @param {number} options.slot BMC slot
  * @param {object} options.server parsed server (src/ipmi/model.js)
  * @param {string} options.name device name
- * @param {boolean} [options.control] power control allowed
  * @param {string} [options.language] feature names language
  */
-export function buildDevice(gladys, { slot, server, name, control = false, language = 'en' }) {
+export function buildDevice(gladys, { slot, server, name, language = 'en' }) {
   const ids = deviceIds(gladys, slot);
   const names = NAMES[language] ?? NAMES.en;
   const features = BLUEPRINT.filter((feature) => present(feature, server)).map((feature) => {
-    const writable = Boolean(feature.command && control);
     return {
       name: names[feature.nameKey ? feature.nameKey(server) : feature.key],
       external_id: ids.feature(feature.key),
       ...feature.definition,
       ...(feature.shape ? feature.shape(server) : {}),
-      read_only: !writable,
-      has_feedback: writable,
+      read_only: true,
+      has_feedback: false,
       keep_history: !feature.text,
     };
   });

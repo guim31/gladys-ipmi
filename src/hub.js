@@ -18,7 +18,6 @@
 import { DEVICE_TRANSPORTS, createLogger } from '@gladysassistant/integration-sdk';
 import { Watcher } from './alerts.js';
 import {
-  FEATURE_KEYS,
   buildDevice,
   deviceIds,
   featureKeys,
@@ -283,7 +282,6 @@ export class IpmiHub {
             slot: record.bmc.slot,
             server: record.server,
             name: this.serverName(record),
-            control: this.config.allowPowerControl,
             language: this.config.language,
           }),
         );
@@ -612,16 +610,13 @@ export class IpmiHub {
     record.commandTimer.unref?.();
   }
 
-  /** The power switch of a device (onSetValue): 1 on, 0 soft shutdown. */
-  async setValue(device, feature, value) {
-    const found = this.find(device?.external_id);
-    if (!found) {
-      throw new Error(pick(ACTION_TEXT.unknownServer, this.config?.language));
-    }
-    if (!feature?.external_id?.endsWith(`:${FEATURE_KEYS.POWER}`)) {
-      throw new Error(pick(ACTION_TEXT.unknownCommand, this.config.language));
-    }
-    await this.command(found.record, Number(value) === 1 ? COMMANDS.ON : COMMANDS.SHUTDOWN);
+  /**
+   * onSetValue: refused. The power feature is read-only on purpose (a voice
+   * assistant must never shut a server down); a Gladys that would send a
+   * value anyway gets an explanation.
+   */
+  async setValue() {
+    throw new Error(pick(ACTION_TEXT.notFromSwitch, this.config?.language));
   }
 
   // --- Publishing to Gladys ----------------------------------------------------------

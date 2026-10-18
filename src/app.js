@@ -73,8 +73,8 @@ export function registerHandlers(gladys, options = {}) {
   gladys.onSetValue(whenReady((device, feature, value) => hub.setValue(device, feature, value)));
 
   gladys.onDeviceCreated(whenReady((device) => hub.onDeviceCreated(device)));
-  // "Update" in the Discover tab may add features or make the power switch
-  // writable: their values were dropped by Gladys until then.
+  // "Update" in the Discover tab may add features: their values were
+  // dropped by Gladys until then.
   gladys.onDeviceUpdated(whenReady((device) => hub.onDeviceCreated(device)));
   gladys.onDeviceDeleted(whenReady(async (device) => hub.onDeviceDeleted(device)));
 

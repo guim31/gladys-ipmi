@@ -114,11 +114,11 @@ for (const scenario of scenarios) {
         assert.ok(!names.has(feature.name), `${at}: duplicate feature name on the device`);
         names.add(feature.name);
       }
-      // Only the power switch can be writable, and only when allowed.
-      const writable = device.features.filter((feature) => !feature.read_only);
+      // Nothing is writable, power control allowed or not: Gladys hands
+      // writable switches to the voice assistants.
       assert.deepEqual(
-        writable.map((feature) => feature.external_id.split(':').pop()),
-        scenario.control ? ['power'] : [],
+        device.features.filter((feature) => !feature.read_only).map((f) => f.external_id),
+        [],
       );
     }
   });

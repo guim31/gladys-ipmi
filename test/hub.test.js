@@ -215,29 +215,28 @@ test('the SEL seen survives a restart: nothing announced twice', async (t) => {
   assert.equal(eventsOf(second, TRIGGERS.SEL).length, 0);
 });
 
-test('power control is off by default: the switch is read-only and commands refused', async (t) => {
-  const world = await oneServer(t);
-  await createDevices(world);
-  const power = world.fake.discoveredDevices[0].features.find((f) =>
-    f.external_id.endsWith(':power'),
-  );
-  assert.equal(power.read_only, true);
-  const device = world.gladys.devices[0];
-  await assert.rejects(world.hub.setValue(device, power, 0), /Allow power control/);
-  assert.deepEqual(world.bmc.powerActions, []);
-});
-
-test('the switch: 0 is a soft shutdown, 1 powers on, nothing sent when already there', async (t) => {
+test('the power feature is never a switch: no voice assistant can shut a server down', async (t) => {
   const world = await oneServer(t, { config: baseConfig({ allow_power_control: true }) });
   await createDevices(world);
   const device = world.gladys.devices[0];
   const power = device.features.find((f) => f.external_id.endsWith(':power'));
-  assert.equal(power.read_only, false);
-  await world.hub.setValue(device, power, 1);
-  assert.deepEqual(world.bmc.powerActions, [], 'already on');
-  await world.hub.setValue(device, power, 0);
-  assert.deepEqual(world.bmc.powerActions, ['soft']);
-  await world.hub.setValue(device, power, 1);
+  assert.equal(power.read_only, true);
+  assert.equal(power.has_feedback, false);
+  await assert.rejects(world.hub.setValue(device, power, 0), /widget buttons or the scene action/);
+  await assert.rejects(world.hub.setValue(device, power, 1));
+  assert.deepEqual(world.bmc.powerActions, []);
+});
+
+test('power commands: refused while control is off, nothing sent when already there', async (t) => {
+  const off = await oneServer(t);
+  await assert.rejects(off.hub.command(off.hub.records.get(1), 'shutdown'), /Allow power control/);
+  assert.deepEqual(off.bmc.powerActions, []);
+  const world = await oneServer(t, { config: baseConfig({ allow_power_control: true }) });
+  const record = world.hub.records.get(1);
+  assert.equal(await world.hub.command(record, 'on'), null, 'already on');
+  assert.equal(await world.hub.command(record, 'shutdown'), 'soft');
+  assert.equal(await world.hub.command(record, 'shutdown'), null, 'already off');
+  assert.equal(await world.hub.command(record, 'on'), 'on');
   assert.deepEqual(world.bmc.powerActions, ['soft', 'on']);
 });
 
