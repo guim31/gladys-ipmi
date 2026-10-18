@@ -1,0 +1,24 @@
+Fan1 RPM         | 30h | ok  |  7.1 | 3840 RPM
+Fan2 RPM         | 31h | ok  |  7.1 | 3720 RPM
+Fan3 RPM         | 32h | ok  |  7.1 | 3720 RPM
+Fan4 RPM         | 33h | ok  |  7.1 | 3600 RPM
+Fan5 RPM         | 34h | ok  |  7.1 | 3720 RPM
+Fan6 RPM         | 35h | ns  |  7.1 | Disabled
+Inlet Temp       | 04h | unc |  7.1 | 43 degrees C
+Exhaust Temp     | 01h | ok  |  7.1 | 38 degrees C
+Temp             | 0Eh | ok  |  3.1 | 52 degrees C
+Temp             | 0Fh | ok  |  3.2 | 49 degrees C
+Current 1        | 6Ah | ok  | 10.1 | 0.60 Amps
+Current 2        | 6Bh | ok  | 10.2 | 0.40 Amps
+Voltage 1        | 6Ch | ok  | 10.1 | 232 Volts
+Voltage 2        | 6Dh | ok  | 10.2 | 230 Volts
+Pwr Consumption  | 77h | ok  |  7.1 | 168 Watts
+Ambient Temp     | 0Dh | ns  |  7.1 | Disabled
+Presence         | 50h | ok  |  3.1 | Presence detected
+Presence         | 51h | ok  |  3.2 | Presence detected
+Status           | 60h | ok  | 10.1 | Presence detected
+Status           | 61h | ok  | 10.2 | Presence detected, Failure detected, Power Supply AC lost
+PS Redundancy    | 74h | ok  |  7.1 | Redundancy Lost
+Fan Redundancy   | 75h | ok  |  7.1 | Fully Redundant
+Intrusion        | 73h | ok  |  7.1 |
+Drive            | 80h | ok  | 26.1 | Drive Present

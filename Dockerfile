@@ -11,7 +11,10 @@
 FROM public.ecr.aws/docker/library/node:24-alpine
 
 # dumb-init: handles signals (SIGTERM) correctly for a graceful shutdown.
-RUN apk add --no-cache dumb-init
+# ipmitool: the IPMI client the integration drives (src/ipmi/runner.js); no
+# maintained IPMI-over-LAN library exists for Node, and ipmitool is the
+# reference implementation every BMC vendor documents (about 1 MB).
+RUN apk add --no-cache dumb-init ipmitool
 
 WORKDIR /app
 

@@ -1,93 +1,97 @@
+// -----------------------------------------------------------------------------
+// The scene actions: the state of a server (figures and a summary in the
+// configured language, an unreachable BMC as an answer), the power command
+// and its guards.
+// -----------------------------------------------------------------------------
+
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFile } from 'node:fs/promises';
-import { createFakeGladys } from '@gladysassistant/integration-sdk/testing';
-import { DEVICE_BLUEPRINTS } from '../src/devices/index.js';
-import { MOTION_DETECTED_TRIGGER, motionSensor } from '../src/devices/motionSensor.js';
-import { SCENE_ACTIONS } from '../src/scenes.js';
-import { normalizeConfig } from '../src/config.js';
+import { readFileSync } from 'node:fs';
+import { FakeBmc, HOST_1, baseConfig, createWorld, deviceId } from './helpers/world.js';
 
-const manifest = JSON.parse(
-  await readFile(new URL('../gladys-assistant-integration.json', import.meta.url), 'utf8'),
-);
-const config = normalizeConfig();
-
-const declarationOf = (list, key) => manifest[list].find((entry) => entry.key === key);
-const keysOf = (list) => (list ?? []).map((entry) => entry.key);
-const deviceIdOf = (gladys, key) =>
-  DEVICE_BLUEPRINTS.find((bp) => bp.key === key).deviceExternalId(gladys);
-
-// Let the async interval callback run to completion.
-const flush = () => new Promise((resolve) => setImmediate(resolve));
-
-test('the motion sensor fires one motion_detected event per detection, none on the clear', async (t) => {
-  t.mock.timers.enable({ apis: ['setInterval', 'setTimeout'] });
-  const gladys = createFakeGladys();
-  const stopPush = motionSensor.startPush(gladys, config);
-  try {
-    t.mock.timers.tick(60_000);
-    await flush();
-    assert.equal(gladys.fake.sceneEvents.length, 1, 'one detection, one event');
-    assert.equal(gladys.fake.sceneEvents[0].key, MOTION_DETECTED_TRIGGER);
-    assert.equal(gladys.fake.states.at(-1).state, 1, 'the state is still published');
-
-    t.mock.timers.tick(10_000);
-    await flush();
-    assert.equal(gladys.fake.states.at(-1).state, 0, 'the detection is cleared');
-    assert.equal(gladys.fake.sceneEvents.length, 1, 'the clear fires no event');
-  } finally {
-    stopPush();
-  }
-});
-
-test('motion_detected data only carries keys the trigger declares', async (t) => {
-  t.mock.timers.enable({ apis: ['setInterval', 'setTimeout'] });
-  const gladys = createFakeGladys();
-  const stopPush = motionSensor.startPush(gladys, config);
-  try {
-    t.mock.timers.tick(60_000);
-    await flush();
-  } finally {
-    stopPush();
-  }
-  const [{ data }] = gladys.fake.sceneEvents;
-  const trigger = declarationOf('scene_triggers', MOTION_DETECTED_TRIGGER);
-  // The core keeps the `fields` keys (filters) and the `variables` keys
-  // (exposed to the scene): any other key would be silently dropped.
-  const declared = [...keysOf(trigger.fields), ...keysOf(trigger.variables)];
-  for (const [key, value] of Object.entries(data)) {
-    assert.ok(declared.includes(key), `data.${key} is not declared, the core would drop it`);
-    assert.ok(value === null || typeof value !== 'object', `data.${key} must be a primitive`);
-  }
-  // A `"source": "devices"` filter stores a device external_id.
-  assert.equal(data.device, deviceIdOf(gladys, 'motion-sensor'));
-  const targets = trigger.fields.find((field) => field.key === 'target').options;
-  assert.ok(
-    targets.some((option) => option.value === data.target),
-    `data.target "${data.target}" must be one of the filter options`,
+test('state of a server: every figure, and a ready-made summary', async (t) => {
+  const bmc = new FakeBmc({ shape: 'dell' });
+  bmc.setSensors(
+    readFileSync(
+      new URL('./fixtures/ipmitool/dell-shaped/sdr-elist-psu-failed.txt', import.meta.url),
+      'utf8',
+    ),
   );
+  const world = await createWorld({
+    bmcs: { [HOST_1]: bmc },
+    config: baseConfig({ language: 'fr', bmc_1_name: 'r720' }),
+  });
+  t.after(() => world.app.stop());
+  const ack = await world.fake.sceneAction('get_server_status', { server: deviceId(world.gladys) });
+  assert.equal(ack.success, true, ack.error);
+  assert.deepEqual(ack.data.outputs, {
+    name: 'r720',
+    online: true,
+    summary:
+      'r720 : allumé, santé Critique, 172 W, entrée 43 °C, processeur 52 °C, ventilateurs ' +
+      '3\u202f720 tr/min, 3 capteur(s) hors seuil (Status Presence detected, Failure detected, ' +
+      'Power Supply AC lost, Inlet Temp 43 °C, PS Redundancy Redundancy Lost)',
+    power_on: true,
+    health: 'Critique',
+    power_watts: 172,
+    intake_temperature: 43,
+    cpu_temperature: 52,
+    max_temperature: 52,
+    fan_speed: 3720,
+    sensors_out_of_range: 3,
+    alerts:
+      'Status Presence detected, Failure detected, Power Supply AC lost, Inlet Temp 43 °C, ' +
+      'PS Redundancy Redundancy Lost',
+  });
 });
 
-test('identify_device signals the chosen device and returns the declared outputs', async () => {
-  const gladys = createFakeGladys();
-  const outputs = await SCENE_ACTIONS.identify_device(gladys, {
-    fields: { device: deviceIdOf(gladys, 'light') },
-    config,
+test('state of a server: an unreachable BMC is an answer, an unknown server an error', async (t) => {
+  const bmc = new FakeBmc();
+  bmc.reachable = false;
+  const world = await createWorld({ bmcs: { [HOST_1]: bmc } });
+  t.after(() => world.app.stop());
+  const ack = await world.fake.sceneAction('get_server_status', { server: deviceId(world.gladys) });
+  assert.deepEqual(ack.data.outputs, {
+    name: HOST_1,
+    online: false,
+    summary: `${HOST_1}: does not answer`,
   });
-  assert.deepEqual(outputs, { signalled: true });
-  const declared = keysOf(declarationOf('scene_actions', 'identify_device').outputs);
-  for (const key of Object.keys(outputs)) {
-    assert.ok(declared.includes(key), `output "${key}" is not declared, the core would drop it`);
-  }
+  const unknown = await world.fake.sceneAction('get_server_status', { server: 'other' });
+  assert.equal(unknown.success, false);
 });
 
-test('identify_device reports a device that cannot signal itself through its output', async () => {
-  // Not a failure: a scene action is never a condition, the scene author
-  // gates the following actions on the output instead.
-  const gladys = createFakeGladys();
-  const outputs = await SCENE_ACTIONS.identify_device(gladys, {
-    fields: { device: deviceIdOf(gladys, 'weather-station') },
-    config,
+test('power command: refused while control is off, sent when allowed', async (t) => {
+  const bmc = new FakeBmc();
+  const off = await createWorld({ bmcs: { [HOST_1]: bmc } });
+  const refused = await off.fake.sceneAction('power_command', {
+    server: deviceId(off.gladys),
+    command: 'force_restart',
   });
-  assert.deepEqual(outputs, { signalled: false });
+  await off.app.stop();
+  assert.equal(refused.success, false);
+  assert.match(refused.error, /Allow power control|Autoriser/);
+  assert.deepEqual(bmc.powerActions, []);
+
+  const world = await createWorld({
+    bmcs: { [HOST_1]: bmc },
+    config: baseConfig({ allow_power_control: true }),
+  });
+  t.after(() => world.app.stop());
+  const ack = await world.fake.sceneAction('power_command', {
+    server: deviceId(world.gladys),
+    command: 'force_restart',
+  });
+  assert.equal(ack.success, true, ack.error);
+  assert.deepEqual(ack.data.outputs, { ipmi_action: 'reset' });
+  const none = await world.fake.sceneAction('power_command', {
+    server: deviceId(world.gladys),
+    command: 'on',
+  });
+  assert.deepEqual(none.data.outputs, { ipmi_action: '' }, 'already on: nothing sent');
+  const bad = await world.fake.sceneAction('power_command', {
+    server: deviceId(world.gladys),
+    command: 'off',
+  });
+  assert.equal(bad.success, false);
+  assert.deepEqual(bmc.powerActions, ['reset']);
 });

@@ -1,0 +1,5 @@
+   1 |  Pre-Init  |0000819978| Power Supply PS1 Status | Presence detected | Asserted
+   2 |  Pre-Init  |0000820064| Temperature Inlet Temp | Upper Non-critical going high | Asserted | Reading 42 > Threshold 40 degrees C
+   3 |  Pre-Init  |0000820064| Temperature CPU1 Temp | Upper Non-critical going high | Asserted | Reading 92 > Threshold 85 degrees C
+   4 |  Pre-Init  |0000820064| Temperature CPU1 Temp | Upper Critical going high | Asserted | Reading 92 > Threshold 90 degrees C
+   5 |  Pre-Init  |0000820064| Fan Fan1 RPM | Lower Non-critical going low  | Asserted | Reading 900 < Threshold 1200 RPM

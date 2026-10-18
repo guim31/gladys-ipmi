@@ -1,0 +1,9 @@
+Inlet Temp       | 01h | unc | 55.1 | 42 degrees C
+CPU1 Temp        | 02h | ucr |  3.1 | 92 degrees C
+CPU2 Temp        | 03h | ok  |  3.2 | 48 degrees C
+Exhaust Temp     | 04h | ok  |  7.1 | 35 degrees C
+Fan1 RPM         | 05h | lnc | 29.1 | 900 RPM
+Fan2 RPM         | 06h | ok  | 29.2 | 4320 RPM
+Pwr Consumption  | 07h | ok  | 10.1 | 192 Watts
+Voltage 12V      | 08h | ok  |  7.1 | 12 Volts
+PS1 Status       | 09h | ok  | 10.1 | Presence detected, Power Supply AC lost

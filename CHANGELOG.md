@@ -4,52 +4,24 @@ All notable changes to this integration are documented in this file. The format
 follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project
 uses [semantic versioning](https://semver.org/).
 
-Describe each change under `## [Unreleased]` as you make it. The Release
-workflow moves that section under the version it ships, and the section becomes
-the notes of the version's GitHub Release.
-
-## [Unreleased]
+Describe each change under `## [Unreleased]
 
 ### Added
 
-- A working example of scene triggers, scene actions and dashboard widgets
-  (Gladys 5.1.0 or later).
-- `CHANGELOG.md`, rolled by the Release workflow.
-- A GitHub Release for every version, with its changelog section as notes: the
-  Gladys Supervision page links each version to the repository's releases.
-- CI runs the tests on Node 22 and 24, and builds the Docker image.
-- Dependabot keeps the npm dependencies and the GitHub Actions up to date.
-- `SECURITY.md` (how to report a vulnerability) and `CLAUDE.md` (project rules
-  for contributors and coding assistants).
-- Manifest tests: `version` matches `package.json`, `docker_image` is tagged
-  with it, descriptions hold 10 to 100 characters, placeholders are
-  multi-language objects.
-- The latitude and longitude fields show an example value as placeholder.
-
-### Changed
-
-- Node.js 22 or later is required (Node 20 is end-of-life).
-- Integration SDK 0.15.0. The tests now run against the fake Gladys of the
-  SDK, which refuses the payloads Gladys refuses.
-- The refresh interval is one minute minimum, the fastest Gladys polls a
-  device. The plug's power is only sent when it changes, and every 30
-  minutes otherwise.
-
-### Fixed
-
-- Gladys refused the devices of the Discovery tab: the weather station and
-  the plug declared their poll frequency in seconds instead of one of the
-  values Gladys accepts, and were never polled. They now poll every minute,
-  and the readings follow the refresh interval of the configuration.
-
-- The release commit no longer fails `npm run format:check`: the Release
-  workflow updates the manifest `version` and `docker_image` in place instead
-  of re-printing the whole file with `jq`.
-- The integration can write to `/data`: the image creates the directory owned
-  by the `node` user, a new Docker volume was owned by root.
-- A sub-container running the integration's own image follows it to the new
-  tag at each release, as well as in the manifest of the build summary: it kept
-  the previous tag, which may not exist on the registry. Sub-containers on a
-  third-party image (a broker, a database...) keep theirs.
-
-[Unreleased]: https://github.com/GladysAssistant/integration-template-js/commits/main
+- One device per server, read over IPMI with `ipmitool` (IPMI 2.0 `lanplus`,
+  or IPMI 1.5 `lan`): power, health (chassis faults and sensors out of their
+  thresholds), power draw (DCMI or a Watts sensor), intake, processor and
+  highest temperatures, mean fan speed, sensors out of range. Up to three BMCs
+  (Dell iDRAC, HP iLO, Supermicro, ASRock Rack…).
+- Power control, off by default: the power switch powers on and sends a soft
+  shutdown (ACPI), never a hard power off; forced restart and power cycle from
+  the scene action only.
+- Dashboard widget "Servers (IPMI)": one row per server, or one server in
+  detail with its tiles, the sensors out of range and its power button.
+- Scene triggers: sensor out of range (with a severity filter), new system
+  event log (SEL) entry, server powered on, server powered off.
+- Scene actions: state of a server (figures and a ready-made summary), power
+  command (on, soft shutdown, forced restart, power cycle).
+- "Test the connection" action, and the reason of a failure in the status of
+  the integration (does not answer, password refused, missing privilege).
+- English, French, German and Spanish, documentation included.

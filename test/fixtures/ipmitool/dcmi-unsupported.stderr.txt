@@ -1,0 +1,4 @@
+Unable to Get Channel Cipher Suites
+Get HPM.x Capabilities request failed, compcode = d4
+
+    DCMI request failed because: Insufficient privilege level (d4)

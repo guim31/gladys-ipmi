@@ -1,0 +1,11 @@
+FRU Device Description : Builtin FRU Device (ID 0)
+ Board Mfg Date        : Mon Jan  7 01:00:00 2013
+ Board Mfg             : DELL
+ Board Product         : PowerEdge R720
+ Board Serial          : CN0000000000AB
+ Board Part Number     : 0X0000A00
+ Product Manufacturer  : DELL
+ Product Name          : PowerEdge R720
+ Product Version       : 01
+ Product Serial        : TESTSN1
+ Product Asset Tag     :

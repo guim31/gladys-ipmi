@@ -16,8 +16,8 @@ its only runtime dependency. It started from the official JavaScript template.
 ```bash
 npm install
 npm test                                  # node --test, the built-in runner
-node --test test/devices.test.js          # one file
-node --test --test-name-pattern "plug"    # tests whose name matches
+node --test test/hub.test.js              # one file
+node --test --test-name-pattern "SEL"     # tests whose name matches
 npm run lint                              # ESLint
 npm run format:check                      # Prettier, as the CI runs it
 npm run format                            # Prettier, fix in place
@@ -32,15 +32,22 @@ pushing.
 
 ```
 index.js                          SDK wiring only: handlers registered before connect()
-src/devices/index.js              registry of the device blueprints + dispatch helpers
-src/devices/<type>.js             one device type per file (buildDevice, onPoll, onSetValue...)
+src/app.js                        registers every SDK handler on the hub (shared with the tests)
+src/config.js                     DEFAULT_CONFIG (mirrors the manifest defaults) + normalization
+src/ipmi/runner.js                the one place that starts ipmitool (password in its env, timeout)
+src/ipmi/client.js                one BMC: queue, SDR cache, read, SEL, power, error kinds
+src/ipmi/parse.js                 ipmitool outputs → objects; error classification
+src/ipmi/model.js                 sensors → figures (intake, CPU, fans, power, health, alerts)
+src/devices.js                    the Gladys device of a server (features, ids, values)
+src/hub.js                        BMCs, polling timer, states, scene events, commands
+src/alerts.js                     what the triggers compare with (persisted by src/store.js)
 src/scenes.js                     scene action handlers (manifest `scene_actions`)
 src/widgets.js                    dashboard widget handlers (manifest `widgets`)
-src/config.js                     DEFAULT_CONFIG (mirrors the manifest defaults) + normalization
-src/weather.js                    example driver (Open-Meteo)
+src/texts.js                      every text sent to Gladys, in en/fr/de/es
 gladys-assistant-integration.json manifest: name, config_schema, actions, image...
-docs/en.md, docs/fr.md            user documentation, re-hosted by Gladys (mandatory)
+docs/{en,fr,de,es}.md             user documentation, re-hosted by Gladys (mandatory)
 test/                             node --test, against the SDK's fake Gladys (integration-sdk/testing)
+test/helpers/fakeIpmi.js          in-memory BMC answering with test/fixtures/ipmitool
 .github/scripts/release.mjs       release helpers (manifest bump, changelog), tested in test/
 ```
 
@@ -70,8 +77,9 @@ test/                             node --test, against the SDK's fake Gladys (in
   `type: "provider"`: 5.1.0). `test/manifest.test.js` ties the manifest to the
   code (defaults, action, scene and widget handlers): change both sides
   together.
-- **User-facing text** is bilingual (English and French): action messages,
-  manifest texts, and `docs/en.md` / `docs/fr.md`, kept in sync.
+- **User-facing text** exists in English, French, German ("du") and Spanish
+  ("usted"): action messages, manifest texts, widget texts, feature names and
+  `docs/{en,fr,de,es}.md`, kept in sync (`test/i18n.test.js`).
 - **Style.** Prettier formats, ESLint catches mistakes. Comments explain why,
   in English. Tests never touch the network.
 
@@ -233,3 +241,42 @@ long, et sur un « Sie »/« Ihr… » de politesse en allemand. Le store exige 
 - Docs `en`, `fr`, `de`, `es` avec les mêmes sections.
 - Chauffe, ouverture, sécurité : ne rien rendre pilotable « comme un thermostat » ou par un assistant
   vocal quand une erreur serait dangereuse (leçon d'OctoPrint).
+
+## IPMI (cette intégration)
+
+- **`ipmitool` 1.8.19** (paquet Alpine, ajouté au `Dockerfile`), lancé par `execFile` sans shell
+  (`src/ipmi/runner.js`) : mot de passe par `-E` et la variable `IPMI_PASSWORD` de l'enfant, jamais
+  en argument ; environnement minimal ; délai dur (30 s, 60 s pour `sdr elist`, 120 s pour le SEL).
+  L'adresse est validée (`parseBmcHost`) avant d'atteindre la ligne de commande.
+- **Une commande à la fois par BMC** (file dans `IpmiClient`) : un BMC a peu de sessions.
+  Lectures en `-L USER`, commandes en `-L OPERATOR`.
+- **Cache SDR** : `sdr dump` une fois par heure dans `/tmp` (tmpfs 64 Mo du bac à sable, monté
+  `noexec`), rendu par `-S` ; sans lui, `sdr elist` relit tout le dépôt SDR à chaque lecture.
+  Supprimé à l'arrêt. Un cache cassé fait relire sans `-S`.
+- **Erreurs** : sans `-v`, `ipmitool` ne dit que « Unable to establish IPMI v2 / RMCP+ session »
+  pour un mauvais mot de passe comme pour un BMC muet. Le client relance alors une fois
+  `chassis status` en `-v` : « RAKP 2 HMAC is invalid » / « unauthorized name » = identifiants,
+  « Get Auth Capabilities error » = injoignable. Le bruit de stderr (« Unable to Get Channel Cipher
+  Suites », « Get HPM.x Capabilities ») n'est pas une erreur.
+- **Sévérités** : colonne d'état de `sdr elist` (`ok`, `lnc`/`unc` = Avertissement,
+  `lcr`/`ucr`/`lnr`/`unr` = Critique, `ns` = pas de lecture, ignoré) ; capteurs discrets par leur
+  texte (« Failure detected » = Critique ; « AC lost », « Redundancy Lost », « Predictive
+  Failure »… = Avertissement). Les seuils sont ceux du BMC.
+- **Noms de capteurs libres** : entité IPMI d'abord (3 processeur, 55/64 entrée d'air, 29
+  ventilateur), nom ensuite. Deux capteurs peuvent porter le même nom (`Temp` ×2 sur un Dell) :
+  clé `numéro|nom` dans `src/alerts.js`. Puissance : DCMI d'abord, sinon capteur en watts
+  « consumption/total », sinon somme des « input » (Supermicro), sinon le premier.
+- **SEL** : `sel info` à chaque lecture (au plus une fois par minute), `sel elist last 20` seulement
+  si le nombre d'entrées ou la date du dernier ajout changent. Clé `id|date|heure` (un SEL vidé
+  renumérote). Première lecture enregistrée sans annonce.
+- **Commandes** : jamais `chassis power off`. Interrupteur = `on` / `soft` ; `reset` et `cycle`
+  seulement par l'action de scène, refusés serveur éteint. L'état est relu (`chassis status`)
+  juste avant chaque commande.
+- **Testé contre `ipmi_sim`** (OpenIPMI 2.0.36, paquet Alpine `openipmi-lanserv`). Pièges du
+  simulateur : en 2.0.36, `sensor_set_value` ne rend pas un capteur lisible (`data_ready` reste à
+  0, réponse 0xCE) — utiliser `sensor_add … poll 1000 file "/tmp/sensors/N"` et écrire les valeurs
+  brutes dans ces fichiers ; les SDR se compilent par `sdrcomp -o
+<state>/ipmi_sim/<nom>/sdr.20.main` ; un `id_string` de 4 caractères ou moins sort corrompu ;
+  `chassis_control` (script) porte l'état d'alimentation ; DCMI non pris en charge ; dates du SEL
+  « Pre-Init ». Fixtures capturées : `test/fixtures/ipmitool/` ; jeu « façon Dell R720 » écrit à
+  la main dans `dell-shaped/` (signalé dans son README).
