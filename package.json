@@ -1,6 +1,6 @@
 {
   "name": "gladys-ipmi",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "private": true,
   "description": "Gladys Assistant integration for servers managed through IPMI (Dell iDRAC, HP iLO, Supermicro, ASRock Rack).",
   "type": "module",
