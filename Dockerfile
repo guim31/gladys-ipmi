@@ -8,7 +8,7 @@
 #   - multi-arch image (linux/amd64 + linux/arm64), see the CI workflow
 # -----------------------------------------------------------------------------
 
-FROM public.ecr.aws/docker/library/node:24-alpine
+FROM mirror.gcr.io/library/node:24-alpine
 
 # dumb-init: handles signals (SIGTERM) correctly for a graceful shutdown.
 # ipmitool: the IPMI client the integration drives (src/ipmi/runner.js); no
